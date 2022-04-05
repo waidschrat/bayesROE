@@ -9,7 +9,7 @@
 #'     Manuscript submitted for publication. Code available at
 #'     \url{https://osf.io/ymx92/}
 #'
-#' Höfler, M. (2021, October 28). Bayesian regions of evidence (for normal
+#'  Höfler, M., Miller, R. (2022, April 04). Bayesian regions of evidence (for normal
 #'  distributions). \doi{10.31234/osf.io/mg23h}
 #'
 #' 
@@ -52,7 +52,7 @@ NULL
 #'     Manuscript submitted for publication. Code available at
 #'     \url{https://osf.io/ymx92/}
 #'
-#'  Höfler, M. (2021, October 28). Bayesian regions of evidence (for normal
+#'  Höfler, M., Miller, R. (2022, April 04). Bayesian regions of evidence (for normal
 #'  distributions). \doi{10.31234/osf.io/mg23h}
 #'
 #' @author Samuel Pawel
@@ -222,4 +222,152 @@ bayesROE <- function(ee, se, delta = 0, alpha = 0.025,
 print.bayesROE <- function(x, ...) {
     print(x$plot)
     invisible(x)
+}
+
+
+#' @title Shiny UI to Visualize Bayesian Region of Evidence
+#'
+#' @description This function initializes and executes a Shiny session to interactively 
+#'     visualize and explore the Bayesian Region of Evidence.
+#'     Parameters entries from the sidebar are passed to the bayesROE function.
+#'
+#' @param sliderInputs Boolean. If TRUE, numeric input fields are replaced by sliders.
+#' @param flip Boolean. If TRUE, default x-axis (prior standard deviation) and y-axis (prior mean) are flipped.
+#' @param init. List containing the arguments that are passed to the bayesROE function: ee, se, delta, alpha. 
+#'     If delta is a numeric vector of length n, the Shiny app plot n adjustable regions of evidence.
+#' 
+#'
+#' @return A bayesROE object (a list containing the ggplot object, the data for
+#'     the plot, and the tipping point function)
+#'
+#' @references Pawel, S., Matthews, R. and Held, L. (2021). Comment on
+#'     "Bayesian additional evidence for decision making under small sample uncertainty".
+#'     Manuscript submitted for publication. Code available at
+#'     \url{https://osf.io/ymx92/}
+#'
+#'  Höfler, M., Miller, R. (2022, April 04). Bayesian regions of evidence (for normal
+#'  distributions). \doi{10.31234/osf.io/mg23h}
+#'
+#' @author Robert Miller
+#'
+#' @examples
+#' ## reproducing Figure 3 from Höfler (2021)
+#' inits <- list(ee = 9, se = 3.9, delta = c(0, 3.75), alpha = 0.025)
+#' shinyROE(sliderInputs = FALSE, flip = TRUE, init = inits)
+#'   
+#'
+#' @export
+shinyROE <- function(sliderInputs=TRUE, flip=TRUE, init=NULL){
+    library(shiny)
+    library(shinyBS)
+    
+    inits <- list(ee = 6, se = 3.9, delta = 0, alpha = 0.05)
+    if(!is.null(init)){
+        inits[match.arg(names(init),names(inits), several.ok = TRUE)] <- init
+    }
+    
+    if(sliderInputs){
+        sidebar_args <- list(
+            sliderInput(inputId = "ee", label = "Effect Estimate", value = inits$ee,
+                        min = -10, max = 10, step = 0.1),
+            sliderInput(inputId = "se", label = "Standard Error", value = inits$se,
+                        min = 0.1, max = 10, step = 0.1),
+            sliderInput(inputId = "alpha", label = "Alpha", value = inits$alpha*100,
+                        min = 0.5, max = 99.5, step = 0.5, post = " %")
+        )
+        for(i in 1:length(inits$delta)){
+            sidebar_args[[length(sidebar_args)+1]] <- sliderInput(inputId = paste0("delta",i),
+                                                                  label = paste("Effect Threshold",i),
+                                                                  value = inits$delta[i],
+                                                                  min = -10, max = 10,
+                                                                  step = 0.1)
+        }
+    } else {
+        sidebar_args <- list(
+            numericInput(inputId = "ee", label = "Effect Estimate", value = inits$ee,
+                         min = -10, max = 10, step = 0.01),
+            numericInput(inputId = "se", label = "Standard Error", value = inits$se,
+                         min = 0.1, max = 10, step = 0.01),
+            numericInput(inputId = "alpha", label = "Alpha (%)", value = inits$alpha*100,
+                         min = 0.1, max = 99.9, step = 0.1)
+        )
+        for(i in 1:length(inits$delta)){
+            sidebar_args[[length(sidebar_args)+1]] <- numericInput(inputId = paste0("delta",i),
+                                                                  label = paste("Effect Threshold",i),
+                                                                  value = inits$delta[i],
+                                                                  min = -10, max = 10,
+                                                                  step = 0.01)
+        }
+    }
+    sidebar_args[[length(sidebar_args)+1]] <- bsTooltip(id = "alpha", trigger = "focus",
+                                                        title = "Posterior probability that the effect size is less extreme than delta",
+                                                        placement = "right", options = list(container = "body"))
+    sidebar_args[["width"]] <- 3
+    
+    ## SLIDERS TO BE ADDED TO sidebar_args
+    #' @param meanLim Limits of prior mean axis. Defaults to interval between zero
+    #'     and two times the effect estimate.
+    #' @param sdLim Limits of prior standard deviation axis. Defaults to interval
+    #'     between zero and three times the standard error.
+    #' @param nGrid Number of grid points (on the standard error axis). Defaults to
+    #'     500.
+    #' @param relative Logical indicating whether a second x-axis and y-axis with
+    #'     relative prior mean and relative prior variance should be displayed.
+    #'     Defaults to TRUE.
+    
+    
+    ui <- fluidPage(
+        titlePanel("Bayesian Regions of Evidence"),
+        
+        sidebarLayout(
+            do.call(sidebarPanel, args = sidebar_args),
+            mainPanel(
+                wellPanel(
+                    plotOutput(outputId = "ROEplot")
+                ),
+                wellPanel(
+                    actionButton(inputId = "Download", "Download Plot", width = "200px"),
+                    br(),br(),
+                    numericInput(inputId = "width", label = "Width (px)",
+                                 min = 640, max = 1600, value = 800, width = "200px"),
+                    numericInput(inputId = "heigth", label = "Height (px)", 
+                                 min = 480, max = 1200, value = 600, width = "200px")
+                ), width = 9)
+            )
+    )
+        
+    server <- function(input, output, session) {
+        delta <- reactive({
+            expr <- paste0("c(",paste(paste0("input$delta",1:length(inits$delta)), collapse = ", "),")")
+            eval(parse(text = expr))
+        })
+        
+        ROEfig <- reactive({
+            ROE <- bayesROE(ee = input$ee, se = input$se, delta = delta(), alpha = input$alpha/100,
+                            meanLim = c(pmin(2*input$ee, 0), pmax(0, 2*input$ee)), sdLim = c(0, 3*input$se),
+                            nGrid = 500, relative = TRUE)
+            
+            if(flip) ROE <- suppressMessages(ROE$plot + ggplot2::coord_flip())
+            
+            return(ROE)
+        })
+        
+        output$ROEplot <- renderPlot({
+            ROEfig()
+            }, width = 640)
+        
+        output$Download <- downloadHandler(
+            filename = "BayesROE.png",
+            content = function(file) {
+                ggsave(filename = file,
+                       plot = ROEfig(),
+                       units = "px",
+                       width = input$width,
+                       height = input$height
+                       )
+            }
+        )
+    }
+    
+    shinyApp(ui, server)
 }
