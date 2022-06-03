@@ -43,6 +43,9 @@ NULL
 #' @param relative Logical indicating whether a second x-axis and y-axis with
 #'     relative prior mean and relative prior variance should be displayed.
 #'     Defaults to TRUE.
+#' @param cols Character containing the HEX color code of the upper and lower
+#'     region of evidence, respectively. Defaults to NULL, which triggers
+#'     automated color picking by calling ggplot2:scale_fill_viridis_d()
 #'
 #' @return A bayesROE object (a list containing the ggplot object, the data for
 #'     the plot, and the tipping point function)
@@ -75,7 +78,8 @@ NULL
 #' @export
 bayesROE <- function(ee, se, delta = 0, alpha = 0.025,
                      meanLim = c(pmin(2*ee, 0), pmax(0, 2*ee)),
-                     sdLim = c(0, 3*se), nGrid = 500, relative = TRUE) {
+                     sdLim = c(0, 3*se), nGrid = 500, relative = TRUE,
+                     cols = NULL) {
     ## input checks
     stopifnot(
         length(ee) == 1,
@@ -183,12 +187,22 @@ bayesROE <- function(ee, se, delta = 0, alpha = 0.025,
                            show.legend = FALSE) +
         ## ggplot2::annotate(geom = "point", x = se, y = ee, shape = "cross") +
         ggplot2::coord_cartesian(ylim = meanLim, xlim = sdLim) +
-        ggplot2::scale_fill_viridis_d(labels = scales::parse_format()) +
-        ggplot2::scale_color_viridis_d() +
         ggplot2::labs(fill = legendString) +
         ggplot2::theme_bw() +
         ggplot2::theme(legend.position = "top", panel.grid = ggplot2::element_blank(),
                        legend.text.align = 0)
+    if(is.null(cols)){
+        ROEplot <- ROEplot +
+            ggplot2::scale_fill_viridis_d(labels = scales::parse_format()) +
+            ggplot2::scale_color_viridis_d(alpha = 0.5)
+    }else{
+        if(length(cols) != 2) stop("cols argument must be of length 2")
+        cols <- colorRampPalette(colors = cols, alpha = TRUE)(length(delta))
+        names(cols) <- levels(ROEplot$data$deltaFormat)
+        ROEplot <- ROEplot +
+            ggplot2::scale_fill_manual(values = cols, labels = scales::parse_format()) +
+            ggplot2::scale_color_manual(values = cols)
+    }
 
     if (relative) {
         ROEplot <- ROEplot +
@@ -260,11 +274,13 @@ print.bayesROE <- function(x, ...) {
 shinyROE <- function(sliderInputs=TRUE, flip=TRUE, init=NULL){
     library(shiny)
     library(shinyBS)
+    library(colourpicker)
     
     inits <- list(ee = 6, se = 3.9, delta = 0, alpha = 0.05)
     if(!is.null(init)){
         inits[match.arg(names(init),names(inits), several.ok = TRUE)] <- init
     }
+    ref_cols <- list(col_lower="#80709666", col_upper="#3D354866", col_rope="#FF00001A", col_conflict="ABA5454D")
     
     if(sliderInputs){
         sidebar_args <- list(
@@ -331,7 +347,9 @@ shinyROE <- function(sliderInputs=TRUE, flip=TRUE, init=NULL){
                     numericInput(inputId = "width", label = "Width (px)",
                                  min = 640, max = 1600, value = 800, width = "200px"),
                     numericInput(inputId = "heigth", label = "Height (px)", 
-                                 min = 480, max = 1200, value = 600, width = "200px")
+                                 min = 480, max = 1200, value = 600, width = "200px"),
+                    colourInput(inputId = "col_lower", label = "Lower Colour", value = ref_cols$col_lower),
+                    colourInput(inputId = "col_upper", label = "Upper Colour", value = ref_cols$col_upper)
                 ), width = 9)
             )
     )
@@ -345,11 +363,15 @@ shinyROE <- function(sliderInputs=TRUE, flip=TRUE, init=NULL){
         ROEfig <- reactive({
             ROE <- bayesROE(ee = input$ee, se = input$se, delta = delta(), alpha = input$alpha/100,
                             meanLim = c(pmin(2*input$ee, 0), pmax(0, 2*input$ee)), sdLim = c(0, 3*input$se),
-                            nGrid = 500, relative = TRUE)
+                            nGrid = 500, relative = TRUE, cols = c(input$col_lower, input$col_upper))
             
             if(flip) ROE <- suppressMessages(ROE$plot + ggplot2::coord_flip())
             
             return(ROE)
+        })
+        
+        ROEcol <- reactive({
+            c(input$col_lower, input$col_upper)
         })
         
         output$ROEplot <- renderPlot({
