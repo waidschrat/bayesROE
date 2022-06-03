@@ -18,15 +18,12 @@ function(input, output, session) {
     ROEfig()
   }, width = 640)
   
-  output$Download <- downloadHandler(
-    filename = "BayesROE.png",
+  output$downloadPDF <- downloadHandler(
+    filename = function() { paste('BayesROE.pdf', sep='') },
     content = function(file) {
-      ggsave(filename = file,
-             plot = ROEfig(),
-             units = "px",
-             width = input$width,
-             height = input$height
-      )
+      pdf(file, paper = input$format)
+      print(ROEfig())
+      dev.off()
     }
   )
 }
