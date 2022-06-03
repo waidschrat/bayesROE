@@ -348,8 +348,8 @@ shinyROE <- function(sliderInputs=TRUE, flip=TRUE, init=NULL){
                                  min = 640, max = 1600, value = 800, width = "200px"),
                     numericInput(inputId = "heigth", label = "Height (px)", 
                                  min = 480, max = 1200, value = 600, width = "200px"),
-                    colourInput(inputId = "col_lower", label = "Lower Colour", value = ref_cols$col_lower),
-                    colourInput(inputId = "col_upper", label = "Upper Colour", value = ref_cols$col_upper)
+                    colourInput(inputId = "col_lower", label = "Lower Colour Key", value = ref_cols$col_lower),
+                    colourInput(inputId = "col_upper", label = "Upper Colour Key", value = ref_cols$col_upper)
                 ), width = 9)
             )
     )
@@ -368,10 +368,6 @@ shinyROE <- function(sliderInputs=TRUE, flip=TRUE, init=NULL){
             if(flip) ROE <- suppressMessages(ROE$plot + ggplot2::coord_flip())
             
             return(ROE)
-        })
-        
-        ROEcol <- reactive({
-            c(input$col_lower, input$col_upper)
         })
         
         output$ROEplot <- renderPlot({
