@@ -342,12 +342,12 @@ shinyROE <- function(sliderInputs=TRUE, flip=TRUE, init=NULL){
                     plotOutput(outputId = "ROEplot")
                 ),
                 wellPanel(
-                    actionButton(inputId = "Download", "Download Plot", width = "200px"),
+                    downloadButton(outputId = "downloadPDF",
+                                   label = "Download PDF",
+                                   width = "200px"),
                     br(),br(),
-                    numericInput(inputId = "width", label = "Width (px)",
-                                 min = 640, max = 1600, value = 800, width = "200px"),
-                    numericInput(inputId = "heigth", label = "Height (px)", 
-                                 min = 480, max = 1200, value = 600, width = "200px"),
+                    radioButtons(inputId = "format", label = "Format", 
+                                 choices =  list("A4 (210 x 297 mm)"="a4r", "Legal (216 x 356 mm)"="USr")),
                     colourInput(inputId = "col_lower", label = "Lower Colour Key", value = ref_cols$col_lower),
                     colourInput(inputId = "col_upper", label = "Upper Colour Key", value = ref_cols$col_upper)
                 ), width = 9)
@@ -374,17 +374,15 @@ shinyROE <- function(sliderInputs=TRUE, flip=TRUE, init=NULL){
             ROEfig()
             }, width = 640)
         
-        output$Download <- downloadHandler(
-            filename = "BayesROE.png",
+        output$downloadPDF <- downloadHandler(
+            filename = function() { paste('BayesROE.pdf', sep='') },
             content = function(file) {
-                ggsave(filename = file,
-                       plot = ROEfig(),
-                       units = "px",
-                       width = input$width,
-                       height = input$height
-                       )
+                pdf(file, paper = input$format)
+                print(ROEfig())
+                dev.off()
             }
         )
+        
     }
     
     shinyApp(ui, server)
