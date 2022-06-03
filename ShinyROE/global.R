@@ -1,13 +1,16 @@
 library(shiny)
 library(shinyBS)
+library(colourpicker)
 
 sliderInputs <- FALSE
 flip <- TRUE
 inits <- list(ee = 6, se = 3.9, delta = c(0,1,2), alpha = 0.05)
+ref_cols <- list(col_lower="#80709666", col_upper="#3D354866", col_rope="#FF00001A", col_conflict="ABA5454D")
 
 bayesROE <- function(ee, se, delta = 0, alpha = 0.025,
                      meanLim = c(pmin(2*ee, 0), pmax(0, 2*ee)),
-                     sdLim = c(0, 3*se), nGrid = 500, relative = TRUE) {
+                     sdLim = c(0, 3*se), nGrid = 500, relative = TRUE,
+                     cols = NULL) {
   ## input checks
   stopifnot(
     length(ee) == 1,
@@ -115,12 +118,22 @@ bayesROE <- function(ee, se, delta = 0, alpha = 0.025,
                        show.legend = FALSE) +
     ## ggplot2::annotate(geom = "point", x = se, y = ee, shape = "cross") +
     ggplot2::coord_cartesian(ylim = meanLim, xlim = sdLim) +
-    ggplot2::scale_fill_viridis_d(labels = scales::parse_format()) +
-    ggplot2::scale_color_viridis_d() +
     ggplot2::labs(fill = legendString) +
     ggplot2::theme_bw() +
     ggplot2::theme(legend.position = "top", panel.grid = ggplot2::element_blank(),
                    legend.text.align = 0)
+  if(is.null(cols)){
+    ROEplot <- ROEplot +
+      ggplot2::scale_fill_viridis_d(labels = scales::parse_format()) +
+      ggplot2::scale_color_viridis_d(alpha = 0.5)
+  }else{
+    if(length(cols) != 2) stop("cols argument must be of length 2")
+    cols <- colorRampPalette(colors = cols, alpha = TRUE)(length(delta))
+    names(cols) <- levels(ROEplot$data$deltaFormat)
+    ROEplot <- ROEplot +
+      ggplot2::scale_fill_manual(values = cols, labels = scales::parse_format()) +
+      ggplot2::scale_color_manual(values = cols)
+  }
   
   if (relative) {
     ROEplot <- ROEplot +

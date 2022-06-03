@@ -52,7 +52,9 @@ fluidPage(
         numericInput(inputId = "width", label = "Width (px)",
                      min = 640, max = 1600, value = 800, width = "200px"),
         numericInput(inputId = "heigth", label = "Height (px)", 
-                     min = 480, max = 1200, value = 600, width = "200px")
+                     min = 480, max = 1200, value = 600, width = "200px"),
+        colourInput(inputId = "col_lower", label = "Lower Colour Key", value = ref_cols$col_lower),
+        colourInput(inputId = "col_upper", label = "Upper Colour Key", value = ref_cols$col_upper)
       ), width = 9)
   )
 )
