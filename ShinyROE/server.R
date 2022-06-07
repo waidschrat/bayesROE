@@ -9,7 +9,7 @@ function(input, output, session) {
                     meanLim = c(pmin(2*input$ee, 0), pmax(0, 2*input$ee)), sdLim = c(0, 3*input$se),
                     nGrid = 500, relative = TRUE, cols = c(input$col_lower, input$col_upper))
     
-    if(flip) ROE <- suppressMessages(ROE$plot + ggplot2::coord_flip())
+    if(!input$flip) ROE <- suppressMessages(ROE$plot + ggplot2::coord_flip())
     
     return(ROE)
   })
