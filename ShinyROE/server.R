@@ -1,24 +1,43 @@
 function(input, output, session) {
-  output$slide_threshold_sidebar <- renderUI({
-    tagList(
-      sliderInput(inputId = "alpha", label = "Alpha", 
-                  value = inits$alpha*100, 
-                  min = 0.5, max = 99.5, step = 0.5, post = " %"),
-      bsTooltip(id = "alpha", trigger = "focus", 
-                title = "Posterior probability that the effect is less extreme than threshold(s)",
-                placement = "right", options = list(container = "body"))
-    )
-  })
-  
-  output$num_threshold_sidebar <- renderUI({
-    tagList(
-      numericInput(inputId = "alpha", label = "Alpha (%)",
-                   value = inits$alpha*100,
-                   min = 0.1, max = 99.9, step = 0.1),
-      bsTooltip(id = "alpha", trigger = "focus", 
-                title = "Posterior probability that the effect size is less extreme than threshold(s)",
-                placement = "right", options = list(container = "body"))
-    )
+  output$add_sidebar <- renderUI({
+    if(input$type == "thres"){
+      sidebar_args <- tagList(
+        numericInput(inputId = "alpha", label = "Alpha (%)",
+                     value = inits$alpha*100,
+                     min = 0.1, max = 99.9, step = 0.1),
+        bsTooltip(id = "alpha", trigger = "focus", 
+                  title = "Posterior probability that the effect is less extreme than threshold(s)",
+                  placement = "right", options = list(container = "body"))
+      )
+      for(i in 1:length(inits$delta)){
+        sidebar_args[[length(sidebar_args)+1]] <- numericInput(inputId = paste0("delta",i),
+                                                               label = paste("Effect Threshold",i),
+                                                               value = inits$delta[i],
+                                                               min = -10, max = 10,
+                                                               step = 0.01)
+      }
+    }
+    if(input$type == "prob"){
+      sidebar_args <- tagList(
+        helpText("WARNING: Plot Type 'Probability' is currently not functional."),
+        sliderInput(inputId = "alpha", label = "Threshold",
+                    value = inits$alpha*100,
+                    min = 0.5, max = 99.5, step = 0.5, post = " %"),
+        bsTooltip(id = "alpha", trigger = "focus",
+                  title = "Threshold representing the smallest clinically relevant effect.",
+                  placement = "right", options = list(container = "body"))
+      )
+
+      for(i in 1:length(inits$delta)){
+        sidebar_args[[length(sidebar_args)+1]] <- sliderInput(inputId = paste0("delta",i),
+                                                              label = paste("Probability",i),
+                                                              value = inits$delta[i],
+                                                              min = -10, max = 10,
+                                                              step = 0.1)
+      }
+    }
+    
+    sidebar_args
   })
   
   delta <- reactive({

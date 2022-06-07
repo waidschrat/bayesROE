@@ -2,8 +2,6 @@ library(shiny)
 library(shinyBS)
 library(colourpicker)
 
-sliderInputs <- FALSE
-flip <- TRUE
 inits <- list(ee = 6, se = 3.9, delta = c(0,1,2), alpha = 0.05)
 ref_cols <- list(col_lower="#80709666", col_upper="#3D354866", col_rope="#FF00001A", col_conflict="ABA5454D")
 

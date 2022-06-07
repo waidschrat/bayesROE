@@ -245,8 +245,6 @@ print.bayesROE <- function(x, ...) {
 #'     visualize and explore the Bayesian Region of Evidence.
 #'     Parameters entries from the sidebar are passed to the bayesROE function.
 #'
-#' @param sliderInputs Boolean. If TRUE, numeric input fields are replaced by sliders.
-#' @param flip Boolean. If TRUE, default x-axis (prior standard deviation) and y-axis (prior mean) are flipped.
 #' @param init. List containing the arguments that are passed to the bayesROE function: ee, se, delta, alpha. 
 #'     If delta is a numeric vector of length n, the Shiny app plot n adjustable regions of evidence.
 #' 
@@ -267,11 +265,11 @@ print.bayesROE <- function(x, ...) {
 #' @examples
 #' ## reproducing Figure 3 from Höfler (2021)
 #' inits <- list(ee = 9, se = 3.9, delta = c(0, 3.75), alpha = 0.025)
-#' shinyROE(sliderInputs = FALSE, flip = TRUE, init = inits)
+#' shinyROE(init = inits)
 #'   
 #'
 #' @export
-shinyROE <- function(sliderInputs=TRUE, init=NULL){
+shinyROE <- function(init=NULL){
     library(shiny)
     library(shinyBS)
     library(colourpicker)
@@ -282,46 +280,19 @@ shinyROE <- function(sliderInputs=TRUE, init=NULL){
     }
     ref_cols <- list(col_lower="#80709666", col_upper="#3D354866", col_rope="#FF00001A", col_conflict="ABA5454D")
     
-    if(sliderInputs){
-        sidebar_args <- list(
-            radioButtons(inputId = "type", label = "Plot Type", 
-                         choices = list("Threshold"="thres","Probability"="prob")),
-            sliderInput(inputId = "ee", label = "Effect Estimate", value = inits$ee,
-                        min = -10, max = 10, step = 0.1),
-            sliderInput(inputId = "se", label = "Standard Error", value = inits$se,
-                        min = 0.1, max = 10, step = 0.1),
-            br()
-        )
-        #sidebar elements | Plot Type == "Threshold"
-        sidebar_args[[length(sidebar_args)+1]] <- uiOutput("slide_threshold_sidebar")
-        for(i in 1:length(inits$delta)){
-            sidebar_args[[length(sidebar_args)+1]] <- sliderInput(inputId = paste0("delta",i),
-                                                                  label = paste("Effect Threshold",i),
-                                                                  value = inits$delta[i],
-                                                                  min = -10, max = 10,
-                                                                  step = 0.1)
-        }
-    } else {
-        sidebar_args <- list(
-            radioButtons(inputId = "type", label = "Plot Type", 
-                         choices = list("Threshold"="thres","Probability"="prob")),
-            numericInput(inputId = "ee", label = "Effect Estimate", value = inits$ee,
-                         min = -10, max = 10, step = 0.01),
-            numericInput(inputId = "se", label = "Standard Error", value = inits$se,
-                         min = 0.1, max = 10, step = 0.01),
-            br()
-        )
-        #sidebar elements | Plot Type == "Threshold"
-        sidebar_args[[length(sidebar_args)+1]] <- uiOutput("num_threshold_sidebar")
-        for(i in 1:length(inits$delta)){
-            sidebar_args[[length(sidebar_args)+1]] <- numericInput(inputId = paste0("delta",i),
-                                                                  label = paste("Effect Threshold",i),
-                                                                  value = inits$delta[i],
-                                                                  min = -10, max = 10,
-                                                                  step = 0.01)
-        }
-    }
+    #fundamental sidebar elements
+    sidebar_args <- list(
+        radioButtons(inputId = "type", label = "Plot Type", 
+                     choices = list("Threshold"="thres","Probability"="prob")),
+        numericInput(inputId = "ee", label = "Effect Estimate", value = inits$ee,
+                     min = -10, max = 10, step = 0.01),
+        numericInput(inputId = "se", label = "Standard Error", value = inits$se,
+                     min = 0.1, max = 10, step = 0.01),
+        br()
+    )
 
+    #additional sidebar elements | Plot Type
+    sidebar_args[[length(sidebar_args)+1]] <- uiOutput("add_sidebar")
     sidebar_args[["width"]] <- 3
     
     ## SLIDERS TO BE ADDED TO sidebar_args
@@ -367,27 +338,47 @@ shinyROE <- function(sliderInputs=TRUE, init=NULL){
     )
         
     server <- function(input, output, session) {
-        output$slide_threshold_sidebar <- renderUI({
-            tagList(
-                sliderInput(inputId = "alpha", label = "Alpha", 
-                            value = inits$alpha*100, 
-                            min = 0.5, max = 99.5, step = 0.5, post = " %"),
-                bsTooltip(id = "alpha", trigger = "focus", 
-                          title = "Posterior probability that the effect is less extreme than threshold(s)",
-                          placement = "right", options = list(container = "body"))
-            )
+        output$add_sidebar <- renderUI({
+            if(input$type == "thres"){
+                sidebar_args <- tagList(
+                    numericInput(inputId = "alpha", label = "Alpha (%)",
+                                 value = inits$alpha*100,
+                                 min = 0.1, max = 99.9, step = 0.1),
+                    bsTooltip(id = "alpha", trigger = "focus", 
+                              title = "Posterior probability that the effect is less extreme than threshold(s)",
+                              placement = "right", options = list(container = "body"))
+                )
+                for(i in 1:length(inits$delta)){
+                    sidebar_args[[length(sidebar_args)+1]] <- numericInput(inputId = paste0("delta",i),
+                                                                           label = paste("Effect Threshold",i),
+                                                                           value = inits$delta[i],
+                                                                           min = -10, max = 10,
+                                                                           step = 0.01)
+                }
+            }
+            if(input$type == "prob"){
+                sidebar_args <- tagList(
+                    helpText("WARNING: Plot Type 'Probability' is currently not functional."),
+                    sliderInput(inputId = "alpha", label = "Threshold", 
+                                value = inits$alpha*100, 
+                                min = 0.5, max = 99.5, step = 0.5, post = " %"),
+                    bsTooltip(id = "alpha", trigger = "focus", 
+                              title = "Threshold representing the smallest clinically relevant effect.",
+                              placement = "right", options = list(container = "body"))
+                )
+                
+                for(i in 1:length(inits$delta)){
+                    sidebar_args[[length(sidebar_args)+1]] <- sliderInput(inputId = paste0("delta",i),
+                                                                          label = paste("Probability",i),
+                                                                          value = inits$delta[i],
+                                                                          min = -10, max = 10,
+                                                                          step = 0.1)
+                }
+            }
+            
+            sidebar_args
         })
         
-        output$num_threshold_sidebar <- renderUI({
-            tagList(
-                numericInput(inputId = "alpha", label = "Alpha (%)",
-                             value = inits$alpha*100,
-                             min = 0.1, max = 99.9, step = 0.1),
-                bsTooltip(id = "alpha", trigger = "focus", 
-                          title = "Posterior probability that the effect size is less extreme than threshold(s)",
-                          placement = "right", options = list(container = "body"))
-            )
-        })
         
         delta <- reactive({
             expr <- paste0("c(",paste(paste0("input$delta",1:length(inits$delta)), collapse = ", "),")")

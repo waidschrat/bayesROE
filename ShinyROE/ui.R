@@ -1,45 +1,16 @@
-if(sliderInputs){
-  sidebar_args <- list(
-    radioButtons(inputId = "type", label = "Plot Type", 
-                 choices = list("Threshold"="thres","Probability"="prob")),
-    sliderInput(inputId = "ee", label = "Effect Estimate", value = inits$ee,
-                min = -10, max = 10, step = 0.1),
-    sliderInput(inputId = "se", label = "Standard Error", value = inits$se,
-                min = 0.1, max = 10, step = 0.1),
-    br()
-  )
-  
-  #sidebar elements | Plot Type == "Threshold"
-  sidebar_args[[length(sidebar_args)+1]] <- uiOutput("slide_threshold_sidebar")
-  for(i in 1:length(inits$delta)){
-    sidebar_args[[length(sidebar_args)+1]] <- sliderInput(inputId = paste0("delta",i),
-                                                          label = paste("Effect Threshold",i),
-                                                          value = inits$delta[i],
-                                                          min = -10, max = 10,
-                                                          step = 0.1)
-  }
-} else {
-  sidebar_args <- list(
-    radioButtons(inputId = "type", label = "Plot Type", 
-                 choices = list("Threshold"="thres","Probability"="prob")),
-    numericInput(inputId = "ee", label = "Effect Estimate", value = inits$ee,
-                 min = -10, max = 10, step = 0.01),
-    numericInput(inputId = "se", label = "Standard Error", value = inits$se,
-                 min = 0.1, max = 10, step = 0.01),
-    br()
-  )
-  
-  #sidebar elements | Plot Type == "Threshold"
-  sidebar_args[[length(sidebar_args)+1]] <- uiOutput("num_threshold_sidebar")
-  for(i in 1:length(inits$delta)){
-    sidebar_args[[length(sidebar_args)+1]] <- numericInput(inputId = paste0("delta",i),
-                                                           label = paste("Effect Threshold",i),
-                                                           value = inits$delta[i],
-                                                           min = -10, max = 10,
-                                                           step = 0.01)
-  }
-}
+#fundamental sidebar elements
+sidebar_args <- list(
+  radioButtons(inputId = "type", label = "Plot Type", 
+               choices = list("Threshold"="thres","Probability"="prob")),
+  numericInput(inputId = "ee", label = "Effect Estimate", value = inits$ee,
+               min = -10, max = 10, step = 0.01),
+  numericInput(inputId = "se", label = "Standard Error", value = inits$se,
+               min = 0.1, max = 10, step = 0.01),
+  br()
+)
 
+#additional sidebar elements | Plot Type
+sidebar_args[[length(sidebar_args)+1]] <- uiOutput("add_sidebar")
 sidebar_args[["width"]] <- 3
 
 
@@ -69,6 +40,6 @@ fluidPage(
                                  choices =  list("A4 (210 x 297 mm)"="a4r", "Legal (216 x 356 mm)"="USr"))
                   ), width = 6)
               )
-          )
     )
+  )
 )
