@@ -120,7 +120,14 @@ bayesROE <- function(ee, se, delta = 0, alpha = 0.025,
 
         length(relative) == 1,
         is.logical(relative),
-        !is.na(relative)
+        !is.na(relative),
+        
+        !xor(!is.null(cols), length(cols) == 2),
+        !xor(!is.null(cols), is.character(cols)),
+        
+        length(addData) == 1,
+        is.logical(addData),
+        !is.na(addData)
     )
 
 
@@ -201,7 +208,6 @@ bayesROE <- function(ee, se, delta = 0, alpha = 0.025,
             ggplot2::scale_fill_viridis_d(labels = scales::parse_format()) +
             ggplot2::scale_color_viridis_d(alpha = 0.5)
     }else{
-        if(length(cols) != 2) stop("cols argument must be of length 2")
         cols <- colorRampPalette(colors = cols, alpha = TRUE)(length(delta))
         names(cols) <- levels(ROEplot$data$deltaFormat)
         ROEplot <- ROEplot +
