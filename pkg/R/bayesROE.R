@@ -46,6 +46,8 @@ NULL
 #' @param cols Character containing the HEX color code of the upper and lower
 #'     region of evidence, respectively. Defaults to NULL, which triggers
 #'     automated color picking by calling ggplot2:scale_fill_viridis_d()
+#' @param addData Logical indicating if ee/sd are added to the plot. 
+#'     Defaults to FALSE
 #'
 #' @return A bayesROE object (a list containing the ggplot object, the data for
 #'     the plot, and the tipping point function)
@@ -79,7 +81,7 @@ NULL
 bayesROE <- function(ee, se, delta = 0, alpha = 0.025,
                      meanLim = c(pmin(2*ee, 0), pmax(0, 2*ee)),
                      sdLim = c(0, 3*se), nGrid = 500, relative = TRUE,
-                     cols = NULL) {
+                     cols = NULL, addData = FALSE) {
     ## input checks
     stopifnot(
         length(ee) == 1,
@@ -185,12 +187,15 @@ bayesROE <- function(ee, se, delta = 0, alpha = 0.025,
         ggplot2::geom_line(ggplot2::aes_string(x = "sePrior", y = "mu",
                                                color = "deltaFormat"),
                            show.legend = FALSE) +
-        ## ggplot2::annotate(geom = "point", x = se, y = ee, shape = "cross") +
         ggplot2::coord_cartesian(ylim = meanLim, xlim = sdLim) +
         ggplot2::labs(fill = legendString) +
         ggplot2::theme_bw() +
         ggplot2::theme(legend.position = "top", panel.grid = ggplot2::element_blank(),
                        legend.text.align = 0)
+    
+    if(addData) ROEplot <- ROEplot + 
+        ggplot2::annotate(geom = "point", x = se, y = ee, shape = "cross")
+    
     if(is.null(cols)){
         ROEplot <- ROEplot +
             ggplot2::scale_fill_viridis_d(labels = scales::parse_format()) +
@@ -320,6 +325,7 @@ shinyROE <- function(init=NULL){
                     column(
                            wellPanel(
                                checkboxInput(inputId = "flip", label = "Flip Axes", value = FALSE),
+                               checkboxInput(inputId = "addData", label = "Add Data", value = FALSE),
                                colourInput(inputId = "col_lower", label = "Lower Colour Key", value = ref_cols$col_lower),
                                colourInput(inputId = "col_upper", label = "Upper Colour Key", value = ref_cols$col_upper)
                            ), width = 6),
@@ -387,7 +393,8 @@ shinyROE <- function(init=NULL){
         
         ROEfig <- reactive({
             if(length(input$alpha) == 1){
-                ROE <- bayesROE(ee = input$ee, se = input$se, delta = delta(), alpha = input$alpha/100,
+                ROE <- bayesROE(ee = input$ee, se = input$se, delta = delta(),
+                                alpha = input$alpha/100, addData = input$addData,
                                 meanLim = c(pmin(2*input$ee, 0), pmax(0, 2*input$ee)), sdLim = c(0, 3*input$se),
                                 nGrid = 500, relative = TRUE, cols = c(input$col_lower, input$col_upper))
                 

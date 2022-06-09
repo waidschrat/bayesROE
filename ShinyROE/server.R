@@ -46,8 +46,10 @@ function(input, output, session) {
   })
   
   ROEfig <- reactive({
+    
     if(length(input$alpha) == 1){
-      ROE <- bayesROE(ee = input$ee, se = input$se, delta = delta(), alpha = input$alpha/100,
+      ROE <- bayesROE(ee = input$ee, se = input$se, delta = delta(),
+                      alpha = input$alpha/100, addData = input$addData,
                       meanLim = c(pmin(2*input$ee, 0), pmax(0, 2*input$ee)), sdLim = c(0, 3*input$se),
                       nGrid = 500, relative = TRUE, cols = c(input$col_lower, input$col_upper))
       

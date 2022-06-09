@@ -27,6 +27,7 @@ fluidPage(
                 column(
                   wellPanel(
                     checkboxInput(inputId = "flip", label = "Flip Axes", value = FALSE),
+                    checkboxInput(inputId = "addData", label = "Add Data", value = FALSE),
                     colourInput(inputId = "col_lower", label = "Lower Colour Key", value = ref_cols$col_lower),
                     colourInput(inputId = "col_upper", label = "Upper Colour Key", value = ref_cols$col_upper)
                   ), width = 6),

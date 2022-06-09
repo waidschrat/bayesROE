@@ -8,7 +8,7 @@ ref_cols <- list(col_lower="#80709666", col_upper="#3D354866", col_rope="#FF0000
 bayesROE <- function(ee, se, delta = 0, alpha = 0.025,
                      meanLim = c(pmin(2*ee, 0), pmax(0, 2*ee)),
                      sdLim = c(0, 3*se), nGrid = 500, relative = TRUE,
-                     cols = NULL) {
+                     cols = NULL, addData = FALSE) {
   ## input checks
   stopifnot(
     length(ee) == 1,
@@ -114,12 +114,15 @@ bayesROE <- function(ee, se, delta = 0, alpha = 0.025,
     ggplot2::geom_line(ggplot2::aes_string(x = "sePrior", y = "mu",
                                            color = "deltaFormat"),
                        show.legend = FALSE) +
-    ## ggplot2::annotate(geom = "point", x = se, y = ee, shape = "cross") +
     ggplot2::coord_cartesian(ylim = meanLim, xlim = sdLim) +
     ggplot2::labs(fill = legendString) +
     ggplot2::theme_bw() +
     ggplot2::theme(legend.position = "top", panel.grid = ggplot2::element_blank(),
                    legend.text.align = 0)
+  
+  if(addData) ROEplot <- ROEplot + 
+    ggplot2::annotate(geom = "point", x = se, y = ee, shape = "cross")
+  
   if(is.null(cols)){
     ROEplot <- ROEplot +
       ggplot2::scale_fill_viridis_d(labels = scales::parse_format()) +
