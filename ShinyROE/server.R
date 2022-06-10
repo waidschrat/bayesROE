@@ -43,20 +43,32 @@ function(input, output, session) {
     sidebar_args
   })
   
+  output$plot_limits <- renderUI({
+    tagList(
+      sliderInput(inputId = "meanLim", label = "Limits x-Axis",
+                  min = -3*input$ee, max = 3*input$ee, round = -1, ticks = FALSE,
+                  value = c(pmin(2*input$ee, -0.5*input$ee), pmax(-0.5*input$ee, 2*input$ee)) ),
+      sliderInput(inputId = "sdLim", label = "Limits y-Axis", 
+                  min = 0, max = 5*input$se, round = -1, ticks = FALSE,
+                  value = c(0, 3*input$se) )
+    )
+  })
+  
+  
   delta <- reactive({
     expr <- paste0("c(",paste(paste0("input$delta",1:input$nregion), collapse = ", "),")")
     eval(parse(text = expr))
   })
   
   ROEfig <- reactive({
-    
     if(length(input$alpha) == 1){
       ROE <- bayesROE(ee = input$ee, se = input$se, delta = delta(),
                       alpha = input$alpha/100, addData = input$addData,
-                      meanLim = c(pmin(2*input$ee, 0), pmax(0, 2*input$ee)), sdLim = c(0, 3*input$se),
-                      nGrid = 500, relative = TRUE, cols = c(input$col_lower, input$col_upper))
+                      meanLim = input$meanLim, sdLim = input$sdLim,
+                      nGrid = 500, relative = TRUE,
+                      cols = c(input$col_lower, input$col_upper), cols_alpha = input$col_alpha)
       
-      if(!input$flip) ROE <- suppressMessages(ROE$plot + ggplot2::coord_flip())
+      if(!input$flip) ROE <- suppressMessages(ROE$plot + ggplot2::coord_flip(ylim = input$meanLim, xlim = input$sdLim))
     }else{
       ROE <- NULL
     }

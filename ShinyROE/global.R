@@ -2,13 +2,13 @@ library(shiny)
 library(shinyBS)
 library(colourpicker)
 
-inits <- list(ee = 6, se = 3.9, delta = c(0,1,2), alpha = 0.05)
+inits <- list(ee = 6, se = 3.9, delta = c(-1,1), alpha = 0.05)
 ref_cols <- list(col_lower="#807096", col_upper="#3D3548", col_rope="#FF0000", col_conflict="#ABA545")
 
-bayesROE <- function(ee, se, delta = 0, alpha = 0.025,
+bayesROE <- function(ee, se, delta = 0, alpha = 0.025, larger = TRUE,
                      meanLim = c(pmin(2*ee, 0), pmax(0, 2*ee)),
                      sdLim = c(0, 3*se), nGrid = 500, relative = TRUE,
-                     cols = NULL, addData = FALSE) {
+                     cols = NULL, cols_alpha = 1, addData = FALSE) {
   ## input checks
   stopifnot(
     length(ee) == 1,
@@ -28,6 +28,10 @@ bayesROE <- function(ee, se, delta = 0, alpha = 0.025,
     length(delta) >= 1,
     !any(!is.numeric(delta)),
     !any(!is.finite(delta)),
+    
+    length(larger) == 1,
+    is.logical(larger),
+    !is.na(larger),
     
     length(meanLim) == 2,
     !any(!is.numeric(meanLim)),
@@ -52,6 +56,11 @@ bayesROE <- function(ee, se, delta = 0, alpha = 0.025,
     !xor(!is.null(cols), length(cols) == 2),
     !xor(!is.null(cols), is.character(cols)),
     
+    length(cols_alpha) == 1,
+    is.numeric(cols_alpha),
+    is.finite(cols_alpha),
+    0 <= cols_alpha, cols_alpha <= 1,
+    
     length(addData) == 1,
     is.logical(addData),
     !is.na(addData)
@@ -63,8 +72,9 @@ bayesROE <- function(ee, se, delta = 0, alpha = 0.025,
   
   ## define tipping point function for prior mean
   za <- stats::qnorm(p = 1 - alpha)
+  asign <- ifelse(larger, 1, -1)
   muTP <- function(g, delta) {
-    mu <- sign(ee)*za*se*sqrt(g*(1 + g)) - ee*g + delta*(1 + g)
+    mu <- asign*za*se*sqrt(g*(1 + g)) - ee*g + delta*(1 + g)
     return(mu)
   }
   
@@ -88,7 +98,7 @@ bayesROE <- function(ee, se, delta = 0, alpha = 0.025,
   ## compute tipping point for different deltas
   plotDF <- do.call("rbind", lapply(X = delta, FUN = function(d) {
     mu <- muTP(g = gSeq, delta = d)
-    if (sign(ee) == -1) {
+    if (!larger) {
       lower <- -Inf
       upper <- mu
     } else {
@@ -100,12 +110,12 @@ bayesROE <- function(ee, se, delta = 0, alpha = 0.025,
                       alpha = alpha)
   }))
   plotDF$deltaFormat <- factor(x = plotDF$delta,
-                               levels = delta[order(abs(delta))],
+                               levels = delta[order(delta)],
                                labels = paste0("Delta == ",
-                                               signif(delta[order(abs(delta))], 3)))
+                                               signif(delta[order(delta)], 3)))
   
   ## plot BRoE
-  if (sign(ee) == -1) {
+  if (!larger) {
     legendString <- bquote({"Pr(effect size" < Delta * "| data, prior)"} >=
                              .(signif(100*(1 - alpha), 3)) * "%")
   } else {
@@ -117,7 +127,7 @@ bayesROE <- function(ee, se, delta = 0, alpha = 0.025,
                                              ymin = "lower",
                                              ymax = "upper",
                                              fill = "deltaFormat"),
-                         alpha = 0.5) +
+                         alpha = cols_alpha) +
     ggplot2::geom_line(ggplot2::aes_string(x = "sePrior", y = "mu",
                                            color = "deltaFormat"),
                        show.legend = FALSE) +

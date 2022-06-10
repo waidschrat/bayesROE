@@ -32,8 +32,9 @@ NULL
 #' @param delta Minimally relevant effect size. Defaults to zero. Can also be a
 #'     vector of numerical values to separate different regions.
 #' @param alpha Posterior probability that the effect size is less extreme than
-#'     delta (i.e. smaller than delta for positive effect estimates, and larger
-#'     than delta for negative effect estimates). Defaults to 0.025.
+#'     delta. Defaults to 0.025.
+#' @param larger Logical indicating if effect size should be larger (TRUE) or
+#'     smaller (FALSE) than delta. Defaults to TRUE.
 #' @param meanLim Limits of prior mean axis. Defaults to interval between zero
 #'     and two times the effect estimate.
 #' @param sdLim Limits of prior standard deviation axis. Defaults to interval
@@ -46,6 +47,8 @@ NULL
 #' @param cols Character containing the HEX color code of the upper and lower
 #'     region of evidence, respectively. Defaults to NULL, which triggers
 #'     automated color picking by calling ggplot2:scale_fill_viridis_d()
+#' @param cols_alpha Numeric value indicating the relative opacity of any
+#'     region of evidence (alpha channel). Defaults to 1 (no transparency).
 #' @param addData Logical indicating if ee/sd are added to the plot. 
 #'     Defaults to FALSE
 #'
@@ -60,7 +63,7 @@ NULL
 #'  Höfler, M., Miller, R. (2022, April 04). Bayesian regions of evidence (for normal
 #'  distributions). \doi{10.31234/osf.io/mg23h}
 #'
-#' @author Samuel Pawel
+#' @authors Samuel Pawel, Robert Miller
 #'
 #' @examples
 #' ## data with p < 0.025 for H0: delta < 0, but p > 0.025 for H0: delta < 0.3
@@ -78,10 +81,10 @@ NULL
 #'   ggplot2::coord_flip(xlim = c(0, 12), ylim = c(-5, 10))
 #'
 #' @export
-bayesROE <- function(ee, se, delta = 0, alpha = 0.025,
+bayesROE <- function(ee, se, delta = 0, alpha = 0.025, larger = TRUE,
                      meanLim = c(pmin(2*ee, 0), pmax(0, 2*ee)),
                      sdLim = c(0, 3*se), nGrid = 500, relative = TRUE,
-                     cols = NULL, addData = FALSE) {
+                     cols = NULL, cols_alpha = 1, addData = FALSE) {
     ## input checks
     stopifnot(
         length(ee) == 1,
@@ -101,6 +104,10 @@ bayesROE <- function(ee, se, delta = 0, alpha = 0.025,
         length(delta) >= 1,
         !any(!is.numeric(delta)),
         !any(!is.finite(delta)),
+        
+        length(larger) == 1,
+        is.logical(larger),
+        !is.na(larger),
 
         length(meanLim) == 2,
         !any(!is.numeric(meanLim)),
@@ -125,6 +132,11 @@ bayesROE <- function(ee, se, delta = 0, alpha = 0.025,
         !xor(!is.null(cols), length(cols) == 2),
         !xor(!is.null(cols), is.character(cols)),
         
+        length(cols_alpha) == 1,
+        is.numeric(cols_alpha),
+        is.finite(cols_alpha),
+        0 <= cols_alpha, cols_alpha <= 1,
+        
         length(addData) == 1,
         is.logical(addData),
         !is.na(addData)
@@ -136,8 +148,9 @@ bayesROE <- function(ee, se, delta = 0, alpha = 0.025,
 
     ## define tipping point function for prior mean
     za <- stats::qnorm(p = 1 - alpha)
+    asign <- ifelse(larger, 1, -1)
     muTP <- function(g, delta) {
-        mu <- sign(ee)*za*se*sqrt(g*(1 + g)) - ee*g + delta*(1 + g)
+        mu <- asign*za*se*sqrt(g*(1 + g)) - ee*g + delta*(1 + g)
         return(mu)
     }
 
@@ -161,7 +174,7 @@ bayesROE <- function(ee, se, delta = 0, alpha = 0.025,
     ## compute tipping point for different deltas
     plotDF <- do.call("rbind", lapply(X = delta, FUN = function(d) {
         mu <- muTP(g = gSeq, delta = d)
-        if (sign(ee) == -1) {
+        if (!larger) {
             lower <- -Inf
             upper <- mu
         } else {
@@ -173,12 +186,12 @@ bayesROE <- function(ee, se, delta = 0, alpha = 0.025,
                           alpha = alpha)
     }))
     plotDF$deltaFormat <- factor(x = plotDF$delta,
-                                 levels = delta[order(abs(delta))],
+                                 levels = delta[order(delta)],
                                  labels = paste0("Delta == ",
-                                                 signif(delta[order(abs(delta))], 3)))
+                                                 signif(delta[order(delta)], 3)))
 
     ## plot BRoE
-    if (sign(ee) == -1) {
+    if (!larger) {
         legendString <- bquote({"Pr(effect size" < Delta * "| data, prior)"} >=
                                .(signif(100*(1 - alpha), 3)) * "%")
     } else {
@@ -190,7 +203,7 @@ bayesROE <- function(ee, se, delta = 0, alpha = 0.025,
                                                  ymin = "lower",
                                                  ymax = "upper",
                                                  fill = "deltaFormat"),
-                             alpha = 0.5) +
+                             alpha = cols_alpha) +
         ggplot2::geom_line(ggplot2::aes_string(x = "sePrior", y = "mu",
                                                color = "deltaFormat"),
                            show.legend = FALSE) +
@@ -250,7 +263,7 @@ print.bayesROE <- function(x, ...) {
 }
 
 
-#' @title Shiny UI to Visualize Bayesian Region of Evidence
+#' @title Shiny Application to Visualize Bayesian Region of Evidence
 #'
 #' @description This function initializes and executes a Shiny session to interactively 
 #'     visualize and explore the Bayesian Region of Evidence.
@@ -258,18 +271,12 @@ print.bayesROE <- function(x, ...) {
 #'
 #' @param init. List containing the arguments that are passed to the bayesROE function: ee, se, delta, alpha. 
 #'     If delta is a numeric vector of length n, the Shiny app plot n adjustable regions of evidence.
-#' 
 #'
 #' @return A bayesROE object (a list containing the ggplot object, the data for
 #'     the plot, and the tipping point function)
 #'
-#' @references Pawel, S., Matthews, R. and Held, L. (2021). Comment on
-#'     "Bayesian additional evidence for decision making under small sample uncertainty".
-#'     Manuscript submitted for publication. Code available at
-#'     \url{https://osf.io/ymx92/}
-#'
-#'  Höfler, M., Miller, R. (2022, April 04). Bayesian regions of evidence (for normal
-#'  distributions). \doi{10.31234/osf.io/mg23h}
+#' @references Höfler, M., Miller, R. (2022, April 04). Bayesian regions of evidence (for normal 
+#'     distributions). \doi{10.31234/osf.io/mg23h}
 #'
 #' @author Robert Miller
 #'
@@ -285,7 +292,7 @@ shinyROE <- function(init=NULL){
     library(shinyBS)
     library(colourpicker)
     
-    inits <- list(ee = 6, se = 3.9, delta = 0, alpha = 0.05)
+    inits <- list(ee = 6, se = 3.9, delta = c(-1,1), alpha = 0.05)
     if(!is.null(init)){
         inits[match.arg(names(init),names(inits), several.ok = TRUE)] <- init
     }
@@ -313,10 +320,6 @@ shinyROE <- function(init=NULL){
     sidebar_args[["width"]] <- 3
     
     ## SLIDERS TO BE ADDED TO sidebar_args
-    #' @param meanLim Limits of prior mean axis. Defaults to interval between zero
-    #'     and two times the effect estimate.
-    #' @param sdLim Limits of prior standard deviation axis. Defaults to interval
-    #'     between zero and three times the standard error.
     #' @param nGrid Number of grid points (on the standard error axis). Defaults to
     #'     500.
     #' @param relative Logical indicating whether a second x-axis and y-axis with
@@ -336,10 +339,19 @@ shinyROE <- function(init=NULL){
                 fluidRow(
                     column(
                            wellPanel(
-                               checkboxInput(inputId = "flip", label = "Flip Axes", value = FALSE),
-                               checkboxInput(inputId = "addData", label = "Add Data", value = FALSE),
-                               colourInput(inputId = "col_lower", label = "Lower Colour Key", value = ref_cols$col_lower),
-                               colourInput(inputId = "col_upper", label = "Upper Colour Key", value = ref_cols$col_upper)
+                               fluidRow(
+                                   column(
+                                       uiOutput("plot_limits"),
+                                       checkboxInput(inputId = "addData", label = "Add Data", value = FALSE),
+                                       checkboxInput(inputId = "flip", label = "Flip Axes", value = FALSE),
+                                       
+                                   width = 6),
+                                   column(
+                                       sliderInput(inputId = "col_alpha", label = "Colour Opacity", min = 0, max = 1, value = 0.5, step = 0.1, ticks = FALSE),
+                                       colourInput(inputId = "col_lower", label = "Lower Colour Key", value = ref_cols$col_lower),
+                                       colourInput(inputId = "col_upper", label = "Upper Colour Key", value = ref_cols$col_upper),
+                                   width = 6)
+                               ),
                            ), width = 6),
                     column(
                         wellPanel(
@@ -400,6 +412,17 @@ shinyROE <- function(init=NULL){
             sidebar_args
         })
         
+        output$plot_limits <- renderUI({
+            tagList(
+                sliderInput(inputId = "meanLim", label = "Limits x-Axis",
+                            min = -3*input$ee, max = 3*input$ee, round = -1, ticks = FALSE,
+                            value = c(pmin(2*input$ee, -0.5*input$ee), pmax(-0.5*input$ee, 2*input$ee)) ),
+                sliderInput(inputId = "sdLim", label = "Limits y-Axis", 
+                            min = 0, max = 5*input$se, round = -1, ticks = FALSE,
+                            value = c(0, 3*input$se) )
+            )
+        })
+        
         
         delta <- reactive({
             expr <- paste0("c(",paste(paste0("input$delta",1:input$nregion), collapse = ", "),")")
@@ -410,10 +433,11 @@ shinyROE <- function(init=NULL){
             if(length(input$alpha) == 1){
                 ROE <- bayesROE(ee = input$ee, se = input$se, delta = delta(),
                                 alpha = input$alpha/100, addData = input$addData,
-                                meanLim = c(pmin(2*input$ee, 0), pmax(0, 2*input$ee)), sdLim = c(0, 3*input$se),
-                                nGrid = 500, relative = TRUE, cols = c(input$col_lower, input$col_upper))
+                                meanLim = input$meanLim, sdLim = input$sdLim,
+                                nGrid = 500, relative = TRUE,
+                                cols = c(input$col_lower, input$col_upper), cols_alpha = input$col_alpha)
                 
-                if(!input$flip) ROE <- suppressMessages(ROE$plot + ggplot2::coord_flip())
+                if(!input$flip) ROE <- suppressMessages(ROE$plot + ggplot2::coord_flip(ylim = input$meanLim, xlim = input$sdLim))
             }else{
                 ROE <- NULL
             }
