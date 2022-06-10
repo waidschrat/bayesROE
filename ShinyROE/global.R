@@ -3,7 +3,7 @@ library(shinyBS)
 library(colourpicker)
 
 inits <- list(ee = 6, se = 3.9, delta = c(0,1,2), alpha = 0.05)
-ref_cols <- list(col_lower="#80709666", col_upper="#3D354866", col_rope="#FF00001A", col_conflict="ABA5454D")
+ref_cols <- list(col_lower="#807096", col_upper="#3D3548", col_rope="#FF0000", col_conflict="#ABA545")
 
 bayesROE <- function(ee, se, delta = 0, alpha = 0.025,
                      meanLim = c(pmin(2*ee, 0), pmax(0, 2*ee)),
@@ -47,7 +47,14 @@ bayesROE <- function(ee, se, delta = 0, alpha = 0.025,
     
     length(relative) == 1,
     is.logical(relative),
-    !is.na(relative)
+    !is.na(relative),
+    
+    !xor(!is.null(cols), length(cols) == 2),
+    !xor(!is.null(cols), is.character(cols)),
+    
+    length(addData) == 1,
+    is.logical(addData),
+    !is.na(addData)
   )
   
   
@@ -125,14 +132,13 @@ bayesROE <- function(ee, se, delta = 0, alpha = 0.025,
   
   if(is.null(cols)){
     ROEplot <- ROEplot +
-      ggplot2::scale_fill_viridis_d(labels = scales::parse_format()) +
-      ggplot2::scale_color_viridis_d(alpha = 0.5)
+      ggplot2::scale_fill_viridis_d(labels = scales::label_parse()) +
+      ggplot2::scale_color_viridis_d(alpha = 1)
   }else{
-    if(length(cols) != 2) stop("cols argument must be of length 2")
-    cols <- colorRampPalette(colors = cols, alpha = TRUE)(length(delta))
+    cols <- colorRampPalette(colors = cols, alpha = FALSE)(length(delta))
     names(cols) <- levels(ROEplot$data$deltaFormat)
     ROEplot <- ROEplot +
-      ggplot2::scale_fill_manual(values = cols, labels = scales::parse_format()) +
+      ggplot2::scale_fill_manual(values = cols, labels = scales::label_parse()) +
       ggplot2::scale_color_manual(values = cols)
   }
   

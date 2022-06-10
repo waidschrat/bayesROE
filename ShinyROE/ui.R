@@ -1,7 +1,13 @@
 #fundamental sidebar elements
 sidebar_args <- list(
-  radioButtons(inputId = "type", label = "Plot Type", 
-               choices = list("Threshold"="thres","Probability"="prob")),
+  fluidRow(
+    column(radioButtons(inputId = "type", label = "Plot Type", 
+                        choices = list("Threshold"="thres","Probability"="prob")),
+           width = 6),
+    column(sliderInput(inputId = "nregion", label = "Regions", 
+                       min = 1, max = 5, value = length(inits$delta), step = 1, ticks = FALSE),
+           width = 6)
+  ),
   numericInput(inputId = "ee", label = "Effect Estimate", value = inits$ee,
                min = -10, max = 10, step = 0.01),
   numericInput(inputId = "se", label = "Standard Error", value = inits$se,

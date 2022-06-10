@@ -9,7 +9,9 @@ function(input, output, session) {
                   title = "Posterior probability that the effect is less extreme than threshold(s)",
                   placement = "right", options = list(container = "body"))
       )
-      for(i in 1:length(inits$delta)){
+      
+      for(i in 1:input$nregion){
+        if(is.na(inits$delta[i])) inits$delta[i] <- inits$delta[length(inits$delta)] + 1
         sidebar_args[[length(sidebar_args)+1]] <- numericInput(inputId = paste0("delta",i),
                                                                label = paste("Effect Threshold",i),
                                                                value = inits$delta[i],
@@ -20,15 +22,16 @@ function(input, output, session) {
     if(input$type == "prob"){
       sidebar_args <- tagList(
         helpText("WARNING: Plot Type 'Probability' is currently not functional."),
-        sliderInput(inputId = "alpha", label = "Threshold",
-                    value = inits$alpha*100,
+        sliderInput(inputId = "alpha", label = "Threshold", 
+                    value = inits$alpha*100, 
                     min = 0.5, max = 99.5, step = 0.5, post = " %"),
-        bsTooltip(id = "alpha", trigger = "focus",
+        bsTooltip(id = "alpha", trigger = "focus", 
                   title = "Threshold representing the smallest clinically relevant effect.",
                   placement = "right", options = list(container = "body"))
       )
-
-      for(i in 1:length(inits$delta)){
+      
+      for(i in 1:input$nregion){
+        if(is.na(inits$delta[i])) inits$delta[i] <- inits$delta[length(inits$delta)] + 1
         sidebar_args[[length(sidebar_args)+1]] <- sliderInput(inputId = paste0("delta",i),
                                                               label = paste("Probability",i),
                                                               value = inits$delta[i],
@@ -41,7 +44,7 @@ function(input, output, session) {
   })
   
   delta <- reactive({
-    expr <- paste0("c(",paste(paste0("input$delta",1:length(inits$delta)), collapse = ", "),")")
+    expr <- paste0("c(",paste(paste0("input$delta",1:input$nregion), collapse = ", "),")")
     eval(parse(text = expr))
   })
   

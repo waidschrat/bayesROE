@@ -205,13 +205,13 @@ bayesROE <- function(ee, se, delta = 0, alpha = 0.025,
     
     if(is.null(cols)){
         ROEplot <- ROEplot +
-            ggplot2::scale_fill_viridis_d(labels = scales::parse_format()) +
-            ggplot2::scale_color_viridis_d(alpha = 0.5)
+            ggplot2::scale_fill_viridis_d(labels = scales::label_parse()) +
+            ggplot2::scale_color_viridis_d(alpha = 1)
     }else{
-        cols <- colorRampPalette(colors = cols, alpha = TRUE)(length(delta))
+        cols <- colorRampPalette(colors = cols, alpha = FALSE)(length(delta))
         names(cols) <- levels(ROEplot$data$deltaFormat)
         ROEplot <- ROEplot +
-            ggplot2::scale_fill_manual(values = cols, labels = scales::parse_format()) +
+            ggplot2::scale_fill_manual(values = cols, labels = scales::label_parse()) +
             ggplot2::scale_color_manual(values = cols)
     }
 
@@ -289,12 +289,18 @@ shinyROE <- function(init=NULL){
     if(!is.null(init)){
         inits[match.arg(names(init),names(inits), several.ok = TRUE)] <- init
     }
-    ref_cols <- list(col_lower="#80709666", col_upper="#3D354866", col_rope="#FF00001A", col_conflict="ABA5454D")
+    ref_cols <- list(col_lower="#807096", col_upper="#3D3548", col_rope="#FF0000", col_conflict="#ABA545")
     
     #fundamental sidebar elements
     sidebar_args <- list(
-        radioButtons(inputId = "type", label = "Plot Type", 
-                     choices = list("Threshold"="thres","Probability"="prob")),
+        fluidRow(
+         column(radioButtons(inputId = "type", label = "Plot Type", 
+                             choices = list("Threshold"="thres","Probability"="prob")),
+                width = 6),
+         column(sliderInput(inputId = "nregion", label = "Regions", 
+                            min = 1, max = 5, value = length(inits$delta), step = 1, ticks = FALSE),
+                width = 6)
+        ),
         numericInput(inputId = "ee", label = "Effect Estimate", value = inits$ee,
                      min = -10, max = 10, step = 0.01),
         numericInput(inputId = "se", label = "Standard Error", value = inits$se,
@@ -360,7 +366,9 @@ shinyROE <- function(init=NULL){
                               title = "Posterior probability that the effect is less extreme than threshold(s)",
                               placement = "right", options = list(container = "body"))
                 )
-                for(i in 1:length(inits$delta)){
+                
+                for(i in 1:input$nregion){
+                    if(is.na(inits$delta[i])) inits$delta[i] <- inits$delta[length(inits$delta)] + 1
                     sidebar_args[[length(sidebar_args)+1]] <- numericInput(inputId = paste0("delta",i),
                                                                            label = paste("Effect Threshold",i),
                                                                            value = inits$delta[i],
@@ -379,7 +387,8 @@ shinyROE <- function(init=NULL){
                               placement = "right", options = list(container = "body"))
                 )
                 
-                for(i in 1:length(inits$delta)){
+                for(i in 1:input$nregion){
+                    if(is.na(inits$delta[i])) inits$delta[i] <- inits$delta[length(inits$delta)] + 1
                     sidebar_args[[length(sidebar_args)+1]] <- sliderInput(inputId = paste0("delta",i),
                                                                           label = paste("Probability",i),
                                                                           value = inits$delta[i],
@@ -393,7 +402,7 @@ shinyROE <- function(init=NULL){
         
         
         delta <- reactive({
-            expr <- paste0("c(",paste(paste0("input$delta",1:length(inits$delta)), collapse = ", "),")")
+            expr <- paste0("c(",paste(paste0("input$delta",1:input$nregion), collapse = ", "),")")
             eval(parse(text = expr))
         })
         
