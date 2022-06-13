@@ -1,5 +1,6 @@
 library(shiny)
 library(shinyBS)
+library(ggplot2)
 library(colourpicker)
 
 inits <- list(ee = 6, se = 3.9, delta = c(-1,1), alpha = 0.05)
@@ -8,7 +9,7 @@ ref_cols <- list(col_lower="#807096", col_upper="#3D3548", col_rope="#FF0000", c
 bayesROE <- function(ee, se, delta = 0, alpha = 0.025, larger = TRUE,
                      meanLim = c(pmin(2*ee, 0), pmax(0, 2*ee)),
                      sdLim = c(0, 3*se), nGrid = 500, relative = TRUE,
-                     cols = NULL, cols_alpha = 1, addData = FALSE) {
+                     cols = NULL, cols_alpha = 1, addRef = TRUE) {
   ## input checks
   stopifnot(
     length(ee) == 1,
@@ -61,9 +62,9 @@ bayesROE <- function(ee, se, delta = 0, alpha = 0.025, larger = TRUE,
     is.finite(cols_alpha),
     0 <= cols_alpha, cols_alpha <= 1,
     
-    length(addData) == 1,
-    is.logical(addData),
-    !is.na(addData)
+    length(addRef) == 1,
+    is.logical(addRef),
+    !is.na(addRef)
   )
   
   
@@ -137,8 +138,10 @@ bayesROE <- function(ee, se, delta = 0, alpha = 0.025, larger = TRUE,
     ggplot2::theme(legend.position = "top", panel.grid = ggplot2::element_blank(),
                    legend.text.align = 0)
   
-  if(addData) ROEplot <- ROEplot + 
-    ggplot2::annotate(geom = "point", x = se, y = ee, shape = "cross")
+  if(addRef) ROEplot <- ROEplot + 
+    ggplot2::geom_vline(xintercept = se, lty = 2, lwd = 0.75) + 
+    ggplot2::geom_hline(yintercept = 0, lty = 2, lwd = 0.75)
+  #ggplot2::annotate(geom = "point", x = se, y = ee, shape = "cross")
   
   if(is.null(cols)){
     ROEplot <- ROEplot +

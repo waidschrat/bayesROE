@@ -63,17 +63,16 @@ function(input, output, session) {
   ROEfig <- reactive({
     if(length(input$alpha) == 1){
       ROE <- bayesROE(ee = input$ee, se = input$se, delta = delta(),
-                      alpha = input$alpha/100, addData = input$addData,
+                      alpha = input$alpha/100, addRef = input$addRef,
                       meanLim = input$meanLim, sdLim = input$sdLim,
                       nGrid = 500, relative = TRUE,
                       cols = c(input$col_lower, input$col_upper), cols_alpha = input$col_alpha)
       
-      if(!input$flip) ROE <- suppressMessages(ROE$plot + ggplot2::coord_flip(ylim = input$meanLim, xlim = input$sdLim))
+      if(!input$flip) ROE$plot <- suppressMessages(ROE$plot + ggplot2::coord_flip(ylim = input$meanLim, xlim = input$sdLim))
+      return(ROE$plot)
     }else{
-      ROE <- NULL
+      return(NULL)
     }
-    
-    return(ROE)
   })
   
   output$ROEplot <- renderPlot({

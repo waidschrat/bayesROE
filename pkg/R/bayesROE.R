@@ -49,8 +49,8 @@ NULL
 #'     automated color picking by calling ggplot2:scale_fill_viridis_d()
 #' @param cols_alpha Numeric value indicating the relative opacity of any
 #'     region of evidence (alpha channel). Defaults to 1 (no transparency).
-#' @param addData Logical indicating if ee/sd are added to the plot. 
-#'     Defaults to FALSE
+#' @param addRef Logical indicating if reference lines are added to the plot.
+#'     Defaults to TRUE
 #'
 #' @return A bayesROE object (a list containing the ggplot object, the data for
 #'     the plot, and the tipping point function)
@@ -84,7 +84,7 @@ NULL
 bayesROE <- function(ee, se, delta = 0, alpha = 0.025, larger = TRUE,
                      meanLim = c(pmin(2*ee, 0), pmax(0, 2*ee)),
                      sdLim = c(0, 3*se), nGrid = 500, relative = TRUE,
-                     cols = NULL, cols_alpha = 1, addData = FALSE) {
+                     cols = NULL, cols_alpha = 1, addRef = TRUE) {
     ## input checks
     stopifnot(
         length(ee) == 1,
@@ -137,9 +137,9 @@ bayesROE <- function(ee, se, delta = 0, alpha = 0.025, larger = TRUE,
         is.finite(cols_alpha),
         0 <= cols_alpha, cols_alpha <= 1,
         
-        length(addData) == 1,
-        is.logical(addData),
-        !is.na(addData)
+        length(addRef) == 1,
+        is.logical(addRef),
+        !is.na(addRef)
     )
 
 
@@ -213,8 +213,10 @@ bayesROE <- function(ee, se, delta = 0, alpha = 0.025, larger = TRUE,
         ggplot2::theme(legend.position = "top", panel.grid = ggplot2::element_blank(),
                        legend.text.align = 0)
     
-    if(addData) ROEplot <- ROEplot + 
-        ggplot2::annotate(geom = "point", x = se, y = ee, shape = "cross")
+    if(addRef) ROEplot <- ROEplot + 
+        ggplot2::geom_vline(xintercept = se, lty = 2, lwd = 0.75) + 
+        ggplot2::geom_hline(yintercept = 0, lty = 2, lwd = 0.75)
+        #ggplot2::annotate(geom = "point", x = se, y = ee, shape = "cross")
     
     if(is.null(cols)){
         ROEplot <- ROEplot +
@@ -290,6 +292,7 @@ print.bayesROE <- function(x, ...) {
 shinyROE <- function(init=NULL){
     library(shiny)
     library(shinyBS)
+    library(ggplot2)
     library(colourpicker)
     
     inits <- list(ee = 6, se = 3.9, delta = c(-1,1), alpha = 0.05)
@@ -333,16 +336,14 @@ shinyROE <- function(init=NULL){
         sidebarLayout(
             do.call(sidebarPanel, args = sidebar_args),
             mainPanel(width = 9,
-                wellPanel(
-                    plotOutput(outputId = "ROEplot")
-                ),
+                plotOutput(outputId = "ROEplot"),
                 fluidRow(
                     column(
                            wellPanel(
                                fluidRow(
                                    column(
                                        uiOutput("plot_limits"),
-                                       checkboxInput(inputId = "addData", label = "Add Data", value = FALSE),
+                                       checkboxInput(inputId = "addRef", label = "Add Reference", value = FALSE),
                                        checkboxInput(inputId = "flip", label = "Flip Axes", value = FALSE),
                                        
                                    width = 6),
@@ -432,17 +433,16 @@ shinyROE <- function(init=NULL){
         ROEfig <- reactive({
             if(length(input$alpha) == 1){
                 ROE <- bayesROE(ee = input$ee, se = input$se, delta = delta(),
-                                alpha = input$alpha/100, addData = input$addData,
+                                alpha = input$alpha/100, addRef = input$addRef,
                                 meanLim = input$meanLim, sdLim = input$sdLim,
                                 nGrid = 500, relative = TRUE,
                                 cols = c(input$col_lower, input$col_upper), cols_alpha = input$col_alpha)
                 
-                if(!input$flip) ROE <- suppressMessages(ROE$plot + ggplot2::coord_flip(ylim = input$meanLim, xlim = input$sdLim))
+                if(!input$flip) ROE$plot <- suppressMessages(ROE$plot + coord_flip(ylim = input$meanLim, xlim = input$sdLim))
+                return(ROE$plot)
             }else{
-                ROE <- NULL
+                return(NULL)
             }
-            
-            return(ROE)
         })
         
         output$ROEplot <- renderPlot({

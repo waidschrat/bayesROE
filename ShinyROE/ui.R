@@ -26,16 +26,14 @@ fluidPage(
   sidebarLayout(
     do.call(sidebarPanel, args = sidebar_args),
     mainPanel(width = 9,
-              wellPanel(
-                plotOutput(outputId = "ROEplot")
-              ),
+              plotOutput(outputId = "ROEplot"),
               fluidRow(
                 column(
                   wellPanel(
                     fluidRow(
                       column(
                         uiOutput("plot_limits"),
-                        checkboxInput(inputId = "addData", label = "Add Data", value = FALSE),
+                        checkboxInput(inputId = "addRef", label = "Add Reference", value = FALSE),
                         checkboxInput(inputId = "flip", label = "Flip Axes", value = FALSE),
                         
                         width = 6),
