@@ -38,7 +38,7 @@ fluidPage(
                         
                         width = 6),
                       column(
-                        sliderInput(inputId = "col_alpha", label = "Colour Opacity", min = 0, max = 1, value = 0.5, step = 0.1, ticks = FALSE),
+                        sliderInput(inputId = "col_alpha", label = "Colour Opacity", min = 0, max = 1, value = 1, step = 0.1, ticks = FALSE),
                         colourInput(inputId = "col_lower", label = "Lower Colour Key", value = ref_cols$col_lower),
                         colourInput(inputId = "col_upper", label = "Upper Colour Key", value = ref_cols$col_upper),
                         width = 6)

@@ -19,20 +19,24 @@
 NULL
 
 
-#' @title Bayesian Region of Evidence
+#' @title Bayesian Regions of Evidence
 #'
-#' @description This function computes and visualizes the Bayesian Region of
-#'     Evidence, i.e. the set of normal priors for an effect size which - when
-#'     combined with the observed data - lead to a specified posterior
+#' @description This function computes and visualizes the Bayesian Regions of
+#'     Evidence, that is, the set of normal priors for an effect size which - 
+#'     when combined with the observed data - lead to a specified posterior
 #'     probability for the effect size being more extreme than a specified
 #'     minimally relevant effect size.
 #'
 #' @param ee Effect estimate.
 #' @param se Standard error of effect estimate.
 #' @param delta Minimally relevant effect size. Defaults to zero. Can also be a
-#'     vector of numerical values to separate different regions.
+#'     vector of numerical values to representing different regions.
 #' @param alpha Posterior probability that the effect size is less extreme than
-#'     delta. Defaults to 0.025.
+#'     delta. Defaults to 0.025. Can also be a vector of numerical values 
+#'     representing different regions.
+#' @param type Character indicating if regions of evidence should be constructed
+#'     from the arguments delta ("threshold") or alpha ("probability").
+#'     Defaults to "threshold".
 #' @param larger Logical indicating if effect size should be larger (TRUE) or
 #'     smaller (FALSE) than delta. Defaults to TRUE.
 #' @param meanLim Limits of prior mean axis. Defaults to interval between zero
@@ -50,7 +54,7 @@ NULL
 #' @param cols_alpha Numeric value indicating the relative opacity of any
 #'     region of evidence (alpha channel). Defaults to 1 (no transparency).
 #' @param addRef Logical indicating if reference lines are added to the plot.
-#'     Defaults to TRUE
+#'     Defaults to TRUE.
 #'
 #' @return A bayesROE object (a list containing the ggplot object, the data for
 #'     the plot, and the tipping point function)
@@ -76,12 +80,12 @@ NULL
 #' ee <- 9
 #' se <- 3.9
 #' delta <- c(0, 3.75)
-#' bayesROE(ee = ee, se = se, delta = delta, meanLim = c(-5, 10),
-#'          sdLim = c(0, 12), alpha = 0.05)$plot +
+#' bayesROE(ee = ee, se = se, delta = delta, alpha = 0.05)$plot +
 #'   ggplot2::coord_flip(xlim = c(0, 12), ylim = c(-5, 10))
 #'
 #' @export
-bayesROE <- function(ee, se, delta = 0, alpha = 0.025, larger = TRUE,
+bayesROE <- function(ee, se, delta = 0, alpha = 0.025,
+                     type="threshold", larger = TRUE,
                      meanLim = c(pmin(2*ee, 0), pmax(0, 2*ee)),
                      sdLim = c(0, 3*se), nGrid = 500, relative = TRUE,
                      cols = NULL, cols_alpha = 1, addRef = TRUE) {
@@ -95,15 +99,19 @@ bayesROE <- function(ee, se, delta = 0, alpha = 0.025, larger = TRUE,
         is.numeric(se),
         is.finite(se),
         0 < se,
-
-        length(alpha) == 1,
-        is.numeric(alpha),
-        is.finite(alpha),
-        0 < alpha, alpha < 1,
+        
+        length(alpha) >= 1,
+        !any(!is.numeric(alpha)),
+        !any(!is.finite(alpha)),
+        !any(!0 < alpha), !any(!alpha < 1),
 
         length(delta) >= 1,
         !any(!is.numeric(delta)),
         !any(!is.finite(delta)),
+        
+        length(type) == 1,
+        is.character(type),
+        !is.null(type),
         
         length(larger) == 1,
         is.logical(larger),
@@ -147,9 +155,8 @@ bayesROE <- function(ee, se, delta = 0, alpha = 0.025, larger = TRUE,
     gSeq <- seq(sdLim[1]/se, sdLim[2]/se, length.out = nGrid)^2
 
     ## define tipping point function for prior mean
-    za <- stats::qnorm(p = 1 - alpha)
     asign <- ifelse(larger, 1, -1)
-    muTP <- function(g, delta) {
+    muTP <- function(g, delta, za) {
         mu <- asign*za*se*sqrt(g*(1 + g)) - ee*g + delta*(1 + g)
         return(mu)
     }
@@ -171,41 +178,75 @@ bayesROE <- function(ee, se, delta = 0, alpha = 0.025, larger = TRUE,
     ##     return(p)
     ## }
 
-    ## compute tipping point for different deltas
-    plotDF <- do.call("rbind", lapply(X = delta, FUN = function(d) {
-        mu <- muTP(g = gSeq, delta = d)
-        if (!larger) {
-            lower <- -Inf
-            upper <- mu
-        } else {
-            lower <- mu
-            upper <- Inf
-        }
-        out <- data.frame(g = gSeq, sePrior = sqrt(gSeq)*se, mu = mu,
-                          lower = lower, upper = upper, delta = d,
-                          alpha = alpha)
-    }))
-    plotDF$deltaFormat <- factor(x = plotDF$delta,
-                                 levels = delta[order(delta)],
-                                 labels = paste0("Delta == ",
-                                                 signif(delta[order(delta)], 3)))
+    ## compute tipping point for different deltas / alphas
+    if(grepl(type, "threshold")){
+        plotDF <- do.call("rbind", lapply(X = delta, FUN = function(x) {
+            za <- stats::qnorm(p = 1 - alpha[1])
+            mu <- muTP(g = gSeq, delta = x, za = za)
+            if (!larger) {
+                lower <- -Inf
+                upper <- mu
+            } else {
+                lower <- mu
+                upper <- Inf
+            }
+            out <- data.frame(g = gSeq, sePrior = sqrt(gSeq)*se, mu = mu,
+                              lower = lower, upper = upper, delta = x,
+                              alpha = alpha[1])
+        }))
+        plotDF$xFormat <- factor(x = plotDF$delta,
+                                     levels = delta[order(delta)],
+                                     labels = paste0("Delta == ",
+                                                     signif(delta[order(delta)], 3)))
+    }else if(grepl(type, "probability")){
+        plotDF <- do.call("rbind", lapply(X = alpha, FUN = function(x) {
+            za <- stats::qnorm(p = 1 - x)
+            mu <- muTP(g = gSeq, delta = delta[1], za = za)
+            if (!larger) {
+                lower <- -Inf
+                upper <- mu
+            } else {
+                lower <- mu
+                upper <- Inf
+            }
+            out <- data.frame(g = gSeq, sePrior = sqrt(gSeq)*se, mu = mu,
+                              lower = lower, upper = upper, delta = delta[1],
+                              alpha = x)
+        }))
+        plotDF$xFormat <- factor(x = plotDF$alpha,
+                                     levels = alpha[order(alpha, decreasing = TRUE)],
+                                     labels = paste0("alpha == ",
+                                                     signif(alpha[order(alpha, decreasing = TRUE)], 3)))
+    }else{
+        stop(paste("argument type =",type,"is unknown"))
+    }
 
     ## plot BRoE
     if (!larger) {
-        legendString <- bquote({"Pr(effect size" < Delta * "| data, prior)"} >=
-                               .(signif(100*(1 - alpha), 3)) * "%")
+        if(grepl(type, "threshold")){
+            legendString <- bquote({"Pr(effect size" < Delta * "| data, prior)"} >=
+                                       .(signif(100*(1 - alpha[1]), 3)) * "%")
+        }else{
+            legendString <- bquote({"Pr(effect size" < .(signif(delta[1], 3)) * "| data, prior)"} >=
+                                       1 - alpha * " ")
+        }
     } else {
-        legendString <- bquote({"Pr(effect size" > Delta * "| data, prior)"} >=
-                               .(signif(100*(1 - alpha), 3)) * "%")
+        if(grepl(type, "threshold")){
+            legendString <- bquote({"Pr(effect size" > Delta * "| data, prior)"} >=
+                                       .(signif(100*(1 - alpha[1]), 3)) * "%")
+        }else{
+            legendString <- bquote({"Pr(effect size" > .(signif(delta[1], 3)) * "| data, prior)"} >=
+                                       1 - alpha * " ")
+        }
     }
     ROEplot <- ggplot2::ggplot(data = plotDF) +
         ggplot2::geom_ribbon(ggplot2::aes_string(x = "sePrior",
                                                  ymin = "lower",
                                                  ymax = "upper",
-                                                 fill = "deltaFormat"),
+                                                 fill = "xFormat"),
                              alpha = cols_alpha) +
         ggplot2::geom_line(ggplot2::aes_string(x = "sePrior", y = "mu",
-                                               color = "deltaFormat"),
+                                               color = "xFormat"),
                            show.legend = FALSE) +
         ggplot2::coord_cartesian(ylim = meanLim, xlim = sdLim) +
         ggplot2::labs(fill = legendString) +
@@ -214,8 +255,8 @@ bayesROE <- function(ee, se, delta = 0, alpha = 0.025, larger = TRUE,
                        legend.text.align = 0)
     
     if(addRef) ROEplot <- ROEplot + 
-        ggplot2::geom_vline(xintercept = se, lty = 2, lwd = 0.75) + 
-        ggplot2::geom_hline(yintercept = 0, lty = 2, lwd = 0.75)
+        ggplot2::geom_vline(xintercept = se, lty = 2, lwd = 0.5) + 
+        ggplot2::geom_hline(yintercept = 0, lty = 2, lwd = 0.5)
         #ggplot2::annotate(geom = "point", x = se, y = ee, shape = "cross")
     
     if(is.null(cols)){
@@ -223,8 +264,9 @@ bayesROE <- function(ee, se, delta = 0, alpha = 0.025, larger = TRUE,
             ggplot2::scale_fill_viridis_d(labels = scales::label_parse()) +
             ggplot2::scale_color_viridis_d(alpha = 1)
     }else{
-        cols <- colorRampPalette(colors = cols, alpha = FALSE)(length(delta))
-        names(cols) <- levels(ROEplot$data$deltaFormat)
+        nregion <- length(levels(ROEplot$data$xFormat))
+        cols <- colorRampPalette(colors = cols, alpha = FALSE)(nregion)
+        names(cols) <- levels(ROEplot$data$xFormat)
         ROEplot <- ROEplot +
             ggplot2::scale_fill_manual(values = cols, labels = scales::label_parse()) +
             ggplot2::scale_color_manual(values = cols)
@@ -265,17 +307,15 @@ print.bayesROE <- function(x, ...) {
 }
 
 
-#' @title Shiny Application to Visualize Bayesian Region of Evidence
+#' @title Shiny Application to Visualize Bayesian Regions of Evidence
 #'
-#' @description This function initializes and executes a Shiny session to interactively 
-#'     visualize and explore the Bayesian Region of Evidence.
+#' @description This function initializes and executes a local Shiny session to 
+#'     interactively visualize and explore the Bayesian Regions of Evidence.
 #'     Parameters entries from the sidebar are passed to the bayesROE function.
 #'
 #' @param init. List containing the arguments that are passed to the bayesROE function: ee, se, delta, alpha. 
-#'     If delta is a numeric vector of length n, the Shiny app plot n adjustable regions of evidence.
 #'
-#' @return A bayesROE object (a list containing the ggplot object, the data for
-#'     the plot, and the tipping point function)
+#' @return Launches the Shiny App.
 #'
 #' @references Höfler, M., Miller, R. (2022, April 04). Bayesian regions of evidence (for normal 
 #'     distributions). \doi{10.31234/osf.io/mg23h}
@@ -295,7 +335,7 @@ shinyROE <- function(init=NULL){
     library(ggplot2)
     library(colourpicker)
     
-    inits <- list(ee = 6, se = 3.9, delta = c(-1,1), alpha = 0.05)
+    inits <- list(ee = 6, se = 3.9, delta = c(0,-1,1), alpha = c(0.025,0.05,0.01))
     if(!is.null(init)){
         inits[match.arg(names(init),names(inits), several.ok = TRUE)] <- init
     }
@@ -348,7 +388,7 @@ shinyROE <- function(init=NULL){
                                        
                                    width = 6),
                                    column(
-                                       sliderInput(inputId = "col_alpha", label = "Colour Opacity", min = 0, max = 1, value = 0.5, step = 0.1, ticks = FALSE),
+                                       sliderInput(inputId = "col_alpha", label = "Colour Opacity", min = 0, max = 1, value = 1, step = 0.1, ticks = FALSE),
                                        colourInput(inputId = "col_lower", label = "Lower Colour Key", value = ref_cols$col_lower),
                                        colourInput(inputId = "col_upper", label = "Upper Colour Key", value = ref_cols$col_upper),
                                    width = 6)
@@ -369,44 +409,45 @@ shinyROE <- function(init=NULL){
     )
         
     server <- function(input, output, session) {
+        
         output$add_sidebar <- renderUI({
             if(input$type == "thres"){
                 sidebar_args <- tagList(
                     numericInput(inputId = "alpha", label = "Alpha (%)",
-                                 value = inits$alpha*100,
+                                 value = inits$alpha[1]*100,
                                  min = 0.1, max = 99.9, step = 0.1),
                     bsTooltip(id = "alpha", trigger = "focus", 
-                              title = "Posterior probability that the effect is less extreme than threshold(s)",
+                              title = "Posterior probability that effect size is less extreme than threshold(s)",
                               placement = "right", options = list(container = "body"))
                 )
                 
                 for(i in 1:input$nregion){
-                    if(is.na(inits$delta[i])) inits$delta[i] <- inits$delta[length(inits$delta)] + 1
+                    if(is.na(inits$delta[i])) inits$delta[i] <<- inits$delta[length(inits$delta)] + 1
                     sidebar_args[[length(sidebar_args)+1]] <- numericInput(inputId = paste0("delta",i),
-                                                                           label = paste("Effect Threshold",i),
+                                                                           label = HTML(paste0("Delta", tags$sub(i))),
                                                                            value = inits$delta[i],
-                                                                           min = -10, max = 10,
-                                                                           step = 0.01)
+                                                                           min = -100, max = 100, step = 0.01)
                 }
             }
             if(input$type == "prob"){
                 sidebar_args <- tagList(
-                    helpText("WARNING: Plot Type 'Probability' is currently not functional."),
-                    sliderInput(inputId = "alpha", label = "Threshold", 
-                                value = inits$alpha*100, 
-                                min = 0.5, max = 99.5, step = 0.5, post = " %"),
-                    bsTooltip(id = "alpha", trigger = "focus", 
-                              title = "Threshold representing the smallest clinically relevant effect.",
+                    #helpText("WARNING: Plot Type 'Probability' is currently not functional."),
+                    numericInput(inputId = "delta",
+                                 label = "Delta",
+                                 value = inits$delta[1],
+                                 min = -100, max = 100,
+                                 step = 0.01),
+                    bsTooltip(id = "delta", trigger = "focus", 
+                              title = "Threshold representing the smallest relevant effect size.",
                               placement = "right", options = list(container = "body"))
                 )
                 
                 for(i in 1:input$nregion){
-                    if(is.na(inits$delta[i])) inits$delta[i] <- inits$delta[length(inits$delta)] + 1
-                    sidebar_args[[length(sidebar_args)+1]] <- sliderInput(inputId = paste0("delta",i),
-                                                                          label = paste("Probability",i),
-                                                                          value = inits$delta[i],
-                                                                          min = -10, max = 10,
-                                                                          step = 0.1)
+                    if(is.na(inits$alpha[i])) inits$alpha[i] <<- inits$alpha[length(inits$alpha)] / 2
+                    sidebar_args[[length(sidebar_args)+1]] <- numericInput(inputId = paste0("alpha",i),
+                                                                           label = HTML(paste0("Alpha", tags$sub(i) ," (%)")),
+                                                                           value = inits$alpha[i]*100,
+                                                                           min = 0.1, max = 99.9, step = 0.1)
                 }
             }
             
@@ -426,16 +467,32 @@ shinyROE <- function(init=NULL){
         
         
         delta <- reactive({
-            expr <- paste0("c(",paste(paste0("input$delta",1:input$nregion), collapse = ", "),")")
+            if(input$type == "thres"){
+                expr <- paste0("c(",paste(paste0("input$delta",1:input$nregion), collapse = ", "),")")
+            }else if(input$type == "prob"){
+                expr <- paste0("input$delta")
+            }
+            eval(parse(text = expr))
+        })
+        
+        alpha <- reactive({
+            if(input$type == "thres"){
+                expr <- paste0("input$alpha / 100")
+            }else if(input$type == "prob"){
+                expr <- paste0("c(",paste(paste0("input$alpha",1:input$nregion), collapse = ", "),") / 100")
+            }
             eval(parse(text = expr))
         })
         
         ROEfig <- reactive({
-            if(length(input$alpha) == 1){
-                ROE <- bayesROE(ee = input$ee, se = input$se, delta = delta(),
-                                alpha = input$alpha/100, addRef = input$addRef,
+            deltas <- delta()
+            alphas <- alpha()
+            if(length(alphas) >= 1 & length(deltas) >= 1){
+                ROE <- bayesROE(ee = input$ee, se = input$se, 
+                                delta = deltas, alpha = alphas,
+                                type = input$type, larger = TRUE,
                                 meanLim = input$meanLim, sdLim = input$sdLim,
-                                nGrid = 500, relative = TRUE,
+                                nGrid = 500, relative = TRUE, addRef = input$addRef,
                                 cols = c(input$col_lower, input$col_upper), cols_alpha = input$col_alpha)
                 
                 if(!input$flip) ROE$plot <- suppressMessages(ROE$plot + coord_flip(ylim = input$meanLim, xlim = input$sdLim))

@@ -3,10 +3,11 @@ library(shinyBS)
 library(ggplot2)
 library(colourpicker)
 
-inits <- list(ee = 6, se = 3.9, delta = c(-1,1), alpha = 0.05)
+inits <- list(ee = 6, se = 3.9, delta = c(0,-1,1), alpha = c(0.025,0.05,0.01))
 ref_cols <- list(col_lower="#807096", col_upper="#3D3548", col_rope="#FF0000", col_conflict="#ABA545")
 
-bayesROE <- function(ee, se, delta = 0, alpha = 0.025, larger = TRUE,
+bayesROE <- function(ee, se, delta = 0, alpha = 0.025,
+                     type="threshold", larger = TRUE,
                      meanLim = c(pmin(2*ee, 0), pmax(0, 2*ee)),
                      sdLim = c(0, 3*se), nGrid = 500, relative = TRUE,
                      cols = NULL, cols_alpha = 1, addRef = TRUE) {
@@ -21,14 +22,18 @@ bayesROE <- function(ee, se, delta = 0, alpha = 0.025, larger = TRUE,
     is.finite(se),
     0 < se,
     
-    length(alpha) == 1,
-    is.numeric(alpha),
-    is.finite(alpha),
-    0 < alpha, alpha < 1,
+    length(alpha) >= 1,
+    !any(!is.numeric(alpha)),
+    !any(!is.finite(alpha)),
+    !any(!0 < alpha), !any(!alpha < 1),
     
     length(delta) >= 1,
     !any(!is.numeric(delta)),
     !any(!is.finite(delta)),
+    
+    length(type) == 1,
+    is.character(type),
+    !is.null(type),
     
     length(larger) == 1,
     is.logical(larger),
@@ -72,9 +77,8 @@ bayesROE <- function(ee, se, delta = 0, alpha = 0.025, larger = TRUE,
   gSeq <- seq(sdLim[1]/se, sdLim[2]/se, length.out = nGrid)^2
   
   ## define tipping point function for prior mean
-  za <- stats::qnorm(p = 1 - alpha)
   asign <- ifelse(larger, 1, -1)
-  muTP <- function(g, delta) {
+  muTP <- function(g, delta, za) {
     mu <- asign*za*se*sqrt(g*(1 + g)) - ee*g + delta*(1 + g)
     return(mu)
   }
@@ -96,41 +100,75 @@ bayesROE <- function(ee, se, delta = 0, alpha = 0.025, larger = TRUE,
   ##     return(p)
   ## }
   
-  ## compute tipping point for different deltas
-  plotDF <- do.call("rbind", lapply(X = delta, FUN = function(d) {
-    mu <- muTP(g = gSeq, delta = d)
-    if (!larger) {
-      lower <- -Inf
-      upper <- mu
-    } else {
-      lower <- mu
-      upper <- Inf
-    }
-    out <- data.frame(g = gSeq, sePrior = sqrt(gSeq)*se, mu = mu,
-                      lower = lower, upper = upper, delta = d,
-                      alpha = alpha)
-  }))
-  plotDF$deltaFormat <- factor(x = plotDF$delta,
-                               levels = delta[order(delta)],
-                               labels = paste0("Delta == ",
-                                               signif(delta[order(delta)], 3)))
+  ## compute tipping point for different deltas / alphas
+  if(grepl(type, "threshold")){
+    plotDF <- do.call("rbind", lapply(X = delta, FUN = function(x) {
+      za <- stats::qnorm(p = 1 - alpha[1])
+      mu <- muTP(g = gSeq, delta = x, za = za)
+      if (!larger) {
+        lower <- -Inf
+        upper <- mu
+      } else {
+        lower <- mu
+        upper <- Inf
+      }
+      out <- data.frame(g = gSeq, sePrior = sqrt(gSeq)*se, mu = mu,
+                        lower = lower, upper = upper, delta = x,
+                        alpha = alpha[1])
+    }))
+    plotDF$xFormat <- factor(x = plotDF$delta,
+                             levels = delta[order(delta)],
+                             labels = paste0("Delta == ",
+                                             signif(delta[order(delta)], 3)))
+  }else if(grepl(type, "probability")){
+    plotDF <- do.call("rbind", lapply(X = alpha, FUN = function(x) {
+      za <- stats::qnorm(p = 1 - x)
+      mu <- muTP(g = gSeq, delta = delta[1], za = za)
+      if (!larger) {
+        lower <- -Inf
+        upper <- mu
+      } else {
+        lower <- mu
+        upper <- Inf
+      }
+      out <- data.frame(g = gSeq, sePrior = sqrt(gSeq)*se, mu = mu,
+                        lower = lower, upper = upper, delta = delta[1],
+                        alpha = x)
+    }))
+    plotDF$xFormat <- factor(x = plotDF$alpha,
+                             levels = alpha[order(alpha, decreasing = TRUE)],
+                             labels = paste0("alpha == ",
+                                             signif(alpha[order(alpha, decreasing = TRUE)], 3)))
+  }else{
+    stop(paste("argument type =",type,"is unknown"))
+  }
   
   ## plot BRoE
   if (!larger) {
-    legendString <- bquote({"Pr(effect size" < Delta * "| data, prior)"} >=
-                             .(signif(100*(1 - alpha), 3)) * "%")
+    if(grepl(type, "threshold")){
+      legendString <- bquote({"Pr(effect size" < Delta * "| data, prior)"} >=
+                               .(signif(100*(1 - alpha[1]), 3)) * "%")
+    }else{
+      legendString <- bquote({"Pr(effect size" < .(signif(delta[1], 3)) * "| data, prior)"} >=
+                               1 - alpha * " ")
+    }
   } else {
-    legendString <- bquote({"Pr(effect size" > Delta * "| data, prior)"} >=
-                             .(signif(100*(1 - alpha), 3)) * "%")
+    if(grepl(type, "threshold")){
+      legendString <- bquote({"Pr(effect size" > Delta * "| data, prior)"} >=
+                               .(signif(100*(1 - alpha[1]), 3)) * "%")
+    }else{
+      legendString <- bquote({"Pr(effect size" > .(signif(delta[1], 3)) * "| data, prior)"} >=
+                               1 - alpha * " ")
+    }
   }
   ROEplot <- ggplot2::ggplot(data = plotDF) +
     ggplot2::geom_ribbon(ggplot2::aes_string(x = "sePrior",
                                              ymin = "lower",
                                              ymax = "upper",
-                                             fill = "deltaFormat"),
+                                             fill = "xFormat"),
                          alpha = cols_alpha) +
     ggplot2::geom_line(ggplot2::aes_string(x = "sePrior", y = "mu",
-                                           color = "deltaFormat"),
+                                           color = "xFormat"),
                        show.legend = FALSE) +
     ggplot2::coord_cartesian(ylim = meanLim, xlim = sdLim) +
     ggplot2::labs(fill = legendString) +
@@ -139,8 +177,8 @@ bayesROE <- function(ee, se, delta = 0, alpha = 0.025, larger = TRUE,
                    legend.text.align = 0)
   
   if(addRef) ROEplot <- ROEplot + 
-    ggplot2::geom_vline(xintercept = se, lty = 2, lwd = 0.75) + 
-    ggplot2::geom_hline(yintercept = 0, lty = 2, lwd = 0.75)
+    ggplot2::geom_vline(xintercept = se, lty = 2, lwd = 0.5) + 
+    ggplot2::geom_hline(yintercept = 0, lty = 2, lwd = 0.5)
   #ggplot2::annotate(geom = "point", x = se, y = ee, shape = "cross")
   
   if(is.null(cols)){
@@ -148,8 +186,9 @@ bayesROE <- function(ee, se, delta = 0, alpha = 0.025, larger = TRUE,
       ggplot2::scale_fill_viridis_d(labels = scales::label_parse()) +
       ggplot2::scale_color_viridis_d(alpha = 1)
   }else{
-    cols <- colorRampPalette(colors = cols, alpha = FALSE)(length(delta))
-    names(cols) <- levels(ROEplot$data$deltaFormat)
+    nregion <- length(levels(ROEplot$data$xFormat))
+    cols <- colorRampPalette(colors = cols, alpha = FALSE)(nregion)
+    names(cols) <- levels(ROEplot$data$xFormat)
     ROEplot <- ROEplot +
       ggplot2::scale_fill_manual(values = cols, labels = scales::label_parse()) +
       ggplot2::scale_color_manual(values = cols)
