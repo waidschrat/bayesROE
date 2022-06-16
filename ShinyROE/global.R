@@ -176,10 +176,13 @@ bayesROE <- function(ee, se, delta = 0, alpha = 0.025,
     ggplot2::theme(legend.position = "top", panel.grid = ggplot2::element_blank(),
                    legend.text.align = 0)
   
-  if(addRef) ROEplot <- ROEplot + 
-    ggplot2::geom_vline(xintercept = se, lty = 2, lwd = 0.5) + 
-    ggplot2::geom_hline(yintercept = 0, lty = 2, lwd = 0.5)
-  #ggplot2::annotate(geom = "point", x = se, y = ee, shape = "cross")
+  if(addRef) {
+    ref <- with(plotDF[plotDF$alpha == alpha[1] & plotDF$delta == delta[1],], approx(mu, sePrior, 0))
+    ROEplot <- ROEplot + 
+      ggplot2::geom_vline(xintercept = ref$y, lty = 2, lwd = 0.5) + 
+      ggplot2::geom_hline(yintercept = ref$x, lty = 2, lwd = 0.5)
+      #ggplot2::annotate(geom = "point", x = se, y = ee, shape = "cross")
+  }
   
   if(is.null(cols)){
     ROEplot <- ROEplot +

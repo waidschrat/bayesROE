@@ -53,7 +53,9 @@ NULL
 #'     automated color picking by calling ggplot2:scale_fill_viridis_d()
 #' @param cols_alpha Numeric value indicating the relative opacity of any
 #'     region of evidence (alpha channel). Defaults to 1 (no transparency).
-#' @param addRef Logical indicating if reference lines are added to the plot.
+#' @param addRef Logical indicating if reference lines representing the minimum 
+#'     sceptical prior with expected value = 0 are to be added to the plot. If 
+#'     delta or alpha are vectors, only their first element(s) will be processed. 
 #'     Defaults to TRUE.
 #'
 #' @return A bayesROE object (a list containing the ggplot object, the data for
@@ -254,11 +256,14 @@ bayesROE <- function(ee, se, delta = 0, alpha = 0.025,
         ggplot2::theme(legend.position = "top", panel.grid = ggplot2::element_blank(),
                        legend.text.align = 0)
     
-    if(addRef) ROEplot <- ROEplot + 
-        ggplot2::geom_vline(xintercept = se, lty = 2, lwd = 0.5) + 
-        ggplot2::geom_hline(yintercept = 0, lty = 2, lwd = 0.5)
-        #ggplot2::annotate(geom = "point", x = se, y = ee, shape = "cross")
-    
+    if(addRef) {
+        ref <- with(plotDF[plotDF$alpha == alpha[1] & plotDF$delta == delta[1],], approx(mu, sePrior, xout = 0))
+        ROEplot <- ROEplot + 
+            ggplot2::geom_vline(xintercept = ref$y, lty = 2, lwd = 0.5) + 
+            ggplot2::geom_hline(yintercept = ref$x, lty = 2, lwd = 0.5) +
+            ggplot2::annotate(geom = "text", x = ref$y, y = meanLim[1], label = paste(round(ref$y,2)), hjust = -0.5 )
+    }
+        
     if(is.null(cols)){
         ROEplot <- ROEplot +
             ggplot2::scale_fill_viridis_d(labels = scales::label_parse()) +
@@ -362,13 +367,6 @@ shinyROE <- function(init=NULL){
     sidebar_args[[length(sidebar_args)+1]] <- uiOutput("add_sidebar")
     sidebar_args[["width"]] <- 3
     
-    ## SLIDERS TO BE ADDED TO sidebar_args
-    #' @param nGrid Number of grid points (on the standard error axis). Defaults to
-    #'     500.
-    #' @param relative Logical indicating whether a second x-axis and y-axis with
-    #'     relative prior mean and relative prior variance should be displayed.
-    #'     Defaults to TRUE.
-    
     
     ui <- fluidPage(
         titlePanel("Bayesian Regions of Evidence"),
@@ -383,7 +381,7 @@ shinyROE <- function(init=NULL){
                                fluidRow(
                                    column(
                                        uiOutput("plot_limits"),
-                                       checkboxInput(inputId = "addRef", label = "Add Reference", value = FALSE),
+                                       checkboxInput(inputId = "addRef", label = "Show Sceptical Prior", value = FALSE),
                                        checkboxInput(inputId = "flip", label = "Flip Axes", value = FALSE),
                                        
                                    width = 6),
@@ -396,13 +394,23 @@ shinyROE <- function(init=NULL){
                            ), width = 6),
                     column(
                         wellPanel(
-                            downloadButton(outputId = "downloadPDF",
-                                           label = "Download PDF",
-                                           width = "200px"),
-                            br(),br(),
-                            radioButtons(inputId = "format", label = "Format", 
-                                         choices =  list("A4 (210 x 297 mm)"="a4r", "Legal (216 x 356 mm)"="USr"))
+                            fluidRow(
+                                column(downloadButton(outputId = "fig_download",
+                                                      label = "Download Figure"),
+                                       br(),br(),
+                                       selectInput(inputId = "fig_format", label = "Data Format", 
+                                                   choices = list("pdf", "eps", "svg", "tex", "png", "tiff"), 
+                                                   selected = "pdf"),
+                                       numericInput(inputId = "fig_width", label = "Figure Width (mm)", 
+                                                    min = 150, max = 400, step = 10, value = 200),
+                                       width=6),
+                                
+                                column(radioButtons(inputId = "fig_aspect", label = "Aspect Ratio", 
+                                                    choices = list("4:3", "16:9", "16:10"), selected = "4:3"),
+                                       width=6)
+                            )
                         ), width = 6)
+                    
                     )
                 )
             )
@@ -431,7 +439,6 @@ shinyROE <- function(init=NULL){
             }
             if(input$type == "prob"){
                 sidebar_args <- tagList(
-                    #helpText("WARNING: Plot Type 'Probability' is currently not functional."),
                     numericInput(inputId = "delta",
                                  label = "Delta",
                                  value = inits$delta[1],
@@ -484,6 +491,16 @@ shinyROE <- function(init=NULL){
             eval(parse(text = expr))
         })
         
+        fig_height <- reactive({
+            if(input$fig_aspect == "4:3"){
+                return(round((input$fig_width/4) * 3))
+            }else if(input$fig_aspect == "16:9"){
+                return(round((input$fig_width/16) * 9))
+            }else if(input$fig_aspect == "16:10"){
+                return(round((input$fig_width/16) * 10))
+            }
+        })
+        
         ROEfig <- reactive({
             deltas <- delta()
             alphas <- alpha()
@@ -506,15 +523,13 @@ shinyROE <- function(init=NULL){
             ROEfig()
             }, width = 640)
         
-        output$downloadPDF <- downloadHandler(
-            filename = function() { paste('BayesROE.pdf', sep='') },
+        output$fig_download <- downloadHandler(
+            filename = function() {paste0('BayesROE_',input$fig_width,'mm.',input$fig_format)},
             content = function(file) {
-                pdf(file, paper = input$format)
-                print(ROEfig())
-                dev.off()
+                ggsave(file, device = input$fig_format, units = "mm", dpi = 300,
+                       width=input$fig_width, height=fig_height())
             }
         )
-        
     }
     
     shinyApp(ui, server)

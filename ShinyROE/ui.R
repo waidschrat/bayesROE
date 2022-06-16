@@ -33,7 +33,7 @@ fluidPage(
                     fluidRow(
                       column(
                         uiOutput("plot_limits"),
-                        checkboxInput(inputId = "addRef", label = "Add Reference", value = FALSE),
+                        checkboxInput(inputId = "addRef", label = "Show Sceptical Prior", value = FALSE),
                         checkboxInput(inputId = "flip", label = "Flip Axes", value = FALSE),
                         
                         width = 6),
@@ -46,12 +46,21 @@ fluidPage(
                   ), width = 6),
                 column(
                   wellPanel(
-                    downloadButton(outputId = "downloadPDF",
-                                   label = "Download PDF",
-                                   width = "200px"),
-                    br(),br(),
-                    radioButtons(inputId = "format", label = "Format", 
-                                 choices =  list("A4 (210 x 297 mm)"="a4r", "Legal (216 x 356 mm)"="USr"))
+                    fluidRow(
+                      column(downloadButton(outputId = "fig_download",
+                                            label = "Download Figure"),
+                             br(),br(),
+                             selectInput(inputId = "fig_format", label = "Data Format", 
+                                         choices = list("pdf", "eps", "svg", "tex", "png", "tiff"), 
+                                         selected = "pdf"),
+                             numericInput(inputId = "fig_width", label = "Figure Width (mm)", 
+                                          min = 150, max = 400, step = 10, value = 200),
+                             width=6),
+                      
+                      column(radioButtons(inputId = "fig_aspect", label = "Aspect Ratio", 
+                                          choices = list("4:3", "16:9", "16:10"), selected = "4:3"),
+                             width=6)
+                    )
                   ), width = 6)
               )
     )

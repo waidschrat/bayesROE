@@ -54,6 +54,15 @@ function(input, output, session) {
     )
   })
   
+  fig_height <- reactive({
+    if(input$fig_aspect == "4:3"){
+      return(round((input$fig_width/4) * 3))
+    }else if(input$fig_aspect == "16:9"){
+      return(round((input$fig_width/16) * 9))
+    }else if(input$fig_aspect == "16:10"){
+      return(round((input$fig_width/16) * 10))
+    }
+  })
   
   delta <- reactive({
     if(input$type == "thres"){
@@ -95,12 +104,12 @@ function(input, output, session) {
     ROEfig()
   }, width = 640)
   
-  output$downloadPDF <- downloadHandler(
-    filename = function() { paste('BayesROE.pdf', sep='') },
+  output$fig_download <- downloadHandler(
+    filename = function() {paste0('BayesROE_',input$fig_width,'mm.',input$fig_format)},
     content = function(file) {
-      pdf(file, paper = input$format)
-      print(ROEfig())
-      dev.off()
+      ggsave(file, device = input$fig_format, units = "mm", dpi = 300,
+             width=input$fig_width, height=fig_height())
     }
   )
+  
 }
