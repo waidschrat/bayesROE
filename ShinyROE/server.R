@@ -46,7 +46,7 @@ function(input, output, session) {
   output$plot_limits <- renderUI({
     tagList(
       sliderInput(inputId = "meanLim", label = "Limits x-Axis",
-                  min = -3*input$ee, max = 3*input$ee, round = -1, ticks = FALSE,
+                  min = -3*abs(input$ee), max = 3*abs(input$ee), round = -1, ticks = FALSE,
                   value = c(pmin(2*input$ee, -0.5*input$ee), pmax(-0.5*input$ee, 2*input$ee)) ),
       sliderInput(inputId = "sdLim", label = "Limits y-Axis", 
                   min = 0, max = 5*input$se, round = -1, ticks = FALSE,
