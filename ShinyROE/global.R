@@ -1,9 +1,8 @@
-library(shiny)
 library(shinyBS)
 library(ggplot2)
 library(colourpicker)
 
-inits <- list(ee = 6, se = 3.9, delta = c(0,-1,1), alpha = c(0.025,0.05,0.01))
+if(!exists("inits")) inits <- list(ee = 6, se = 3.9, delta = c(0,-1,1), alpha = c(0.025,0.05,0.01))
 ref_cols <- list(col_lower="#807096", col_upper="#3D3548", col_rope="#FF0000", col_conflict="#ABA545")
 
 bayesROE <- function(ee, se, delta = 0, alpha = 0.025,
