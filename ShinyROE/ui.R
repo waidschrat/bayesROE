@@ -35,6 +35,7 @@ fluidPage(
                         uiOutput("plot_limits"),
                         checkboxInput(inputId = "addRef", label = "Show Sceptical Prior", value = FALSE),
                         checkboxInput(inputId = "flip", label = "Flip Axes", value = FALSE),
+                        checkboxInput(inputId = "addConfl", label = "Conflict Regions", value = FALSE),
                         
                         width = 6),
                       column(

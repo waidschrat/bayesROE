@@ -1,10 +1,11 @@
 #' @title Shiny Application to Visualize Bayesian Regions of Evidence
 #'
-#' @description This function initializes and executes a local Shiny session to 
+#' @description Initialize and execute a local Shiny session to 
 #'     interactively visualize and explore the Bayesian Regions of Evidence.
 #'     Parameters entries from the sidebar are passed to the bayesROE function.
 #'
-#' @param init. List containing the arguments that are passed to the bayesROE function: ee, se, delta, alpha. 
+#' @param init. List containing the arguments that are passed to the bayesROE 
+#'     function: ee, se, delta, alpha. 
 #'
 #' @return Launches the Shiny App.
 #'

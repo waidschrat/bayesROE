@@ -1,0 +1,250 @@
+#' @title Bayesian Regions of Evidence Raster Plot
+#'
+#' @description Compute and visualize the Bayesian Regions of Evidence (Raster),
+#'     that is, the set of normal priors for an effect size which - 
+#'     when combined with the observed data - lead to a specified posterior
+#'     probability for the effect size being more extreme than a specified
+#'     minimally relevant effect size.
+#'     
+#' @param ee Effect estimate.
+#' @param se Standard error of effect estimate.
+#' @param delta Minimally relevant effect size. Defaults to zero. Can also be a
+#'     vector of numerical values to representing different regions.
+#' @param alpha Posterior probability that the effect size is less extreme than
+#'     delta. Defaults to 0.025. Can also be a vector of numerical values 
+#'     representing different regions.
+#' @param type Character indicating if regions of evidence should be constructed
+#'     from the arguments delta ("threshold") or alpha ("probability").
+#'     Defaults to "threshold".
+#' @param larger Logical indicating if effect size should be larger (TRUE) or
+#'     smaller (FALSE) than delta. Defaults to TRUE.
+#' @param meanLim Limits of prior mean axis. Defaults to interval between zero
+#'     and two times the effect estimate.
+#' @param sdLim Limits of prior standard deviation axis. Defaults to interval
+#'     between zero and three times the standard error.
+#' @param nGrid Resolution of grid points (on both axes). Defaults to 100.
+#' @param cols Character containing the HEX color code of the upper and lower
+#'     region of evidence, respectively. Defaults to NULL, which triggers
+#'     automated color picking by calling ggplot2:scale_fill_viridis_d()
+#' @param cols_alpha Numeric value indicating the relative opacity of any
+#'     region of evidence (alpha channel). Defaults to 1 (no transparency).
+#'
+#' @return A bayesROE object (a list containing the ggplot object, the data for
+#'     the plot, and the empty tipping point function)
+#'
+#' @references Höfler, M., Miller, R. (2022, April 04). Bayesian regions of evidence (for normal
+#'  distributions). \doi{10.31234/osf.io/mg23h}
+#'
+#'
+#' @authors Robert Miller
+#'
+#' @examples
+#' ## data with p < 0.025 for H0: delta < 0, but p > 0.025 for H0: delta < 0.3
+#' d <- 0.4
+#' d_se <- 0.1
+#' delta <- c(0, 0.3)
+#' rasterROE(ee = d, se = d_se, delta = delta, meanLim = c(-1, 1))
+#'
+#' ## reproducing Figure 3 from Höfler (2021)
+#' ee <- 9
+#' se <- 3.9
+#' delta <- c(0, 3.75)
+#' rasterROE(ee = ee, se = se, delta = delta, alpha = 0.05)$plot +
+#'   ggplot2::coord_flip(xlim = c(0, 12), ylim = c(-5, 10))
+#'
+#' @export
+rasterROE <- function(ee, se, delta = 0, alpha = 0.025,
+                     type="threshold", larger = TRUE,
+                     meanLim = c(pmin(2*ee, 0), pmax(0, 2*ee)),
+                     sdLim = c(0, 3*se), nGrid = 100,
+                     cols = NULL, cols_alpha = 1) {
+  ## input checks
+  stopifnot(
+    length(ee) == 1,
+    is.numeric(ee),
+    is.finite(ee),
+    
+    length(se) == 1,
+    is.numeric(se),
+    is.finite(se),
+    0 < se,
+    
+    length(alpha) >= 1,
+    !any(!is.numeric(alpha)),
+    !any(!is.finite(alpha)),
+    !any(!0 < alpha), !any(!alpha < 1),
+    
+    length(delta) >= 1,
+    !any(!is.numeric(delta)),
+    !any(!is.finite(delta)),
+    
+    length(type) == 1,
+    is.character(type),
+    !is.null(type),
+    
+    length(larger) == 1,
+    is.logical(larger),
+    !is.na(larger),
+    
+    length(meanLim) == 2,
+    !any(!is.numeric(meanLim)),
+    !any(!is.finite(meanLim)),
+    (meanLim[1] < meanLim[2]),
+    
+    length(sdLim) == 2,
+    !any(!is.numeric(sdLim)),
+    !any(!is.finite(sdLim)),
+    !any(sdLim < 0),
+    (sdLim[1] < sdLim[2]),
+    
+    length(nGrid) == 1,
+    is.numeric(nGrid),
+    is.finite(nGrid),
+    nGrid > 0,
+    
+    !xor(!is.null(cols), length(cols) == 2),
+    !xor(!is.null(cols), is.character(cols)),
+    
+    length(cols_alpha) == 1,
+    is.numeric(cols_alpha),
+    is.finite(cols_alpha),
+    0 <= cols_alpha, cols_alpha <= 1
+  )
+  
+  ## auxiliary functions
+  posterior <- function(obs_pars, prior_pars){
+    posterior_pars <- rep(NA,2) #posterior container
+    obs_pars[2] <- obs_pars[2]^2 #transform to variance
+    prior_pars[2] <- prior_pars[2]^2 #transform to variance
+    
+    if(prior_pars[2] == 0){
+      posterior_pars <- prior_pars
+    }else{
+      posterior_pars[1] <- (prior_pars[1]/prior_pars[2] + obs_pars[1]/obs_pars[2]) / (1/prior_pars[2] + 1/obs_pars[2]) #posterior mean
+      posterior_pars[2] <- sqrt(1 / (1/prior_pars[2] + 1/obs_pars[2])) #posterior standard deviation
+    }
+    return(posterior_pars)
+  }
+  
+  posterior_grid <- Vectorize(function(obs_pars, prior_mu, prior_sd){
+    posterior(obs_pars, c(prior_mu, prior_sd))
+  }, vectorize.args = c("prior_mu","prior_sd"))
+  
+  prob_grid <- Vectorize(function(posterior_pars, delta=0, larger=TRUE){
+    if(posterior_pars[2] == 0){
+      if(posterior_pars[1] != delta){
+        return(0)
+      }else{
+        return(1)
+      }
+    }
+    
+    zval <- (posterior_pars[1] - delta)/posterior_pars[2]
+    if(larger){
+        return(1 - pnorm(zval))
+    }else{
+        return(pnorm(zval))
+    }
+  }, vectorize.args = c("delta"))
+  
+  ## define parameter grid
+  gSeq <- seq(sdLim[1]/se, sdLim[2]/se, length.out = nGrid)^2
+  muSeq <- seq(meanLim[1], meanLim[2], length.out = nGrid)
+  
+  plotDF <- expand.grid("g"=gSeq, "mu"=muSeq)
+  plotDF$sePrior = sqrt(plotDF$g)*se
+  
+  ## calculate posterior parameters
+  posteriorPars <- posterior_grid(obs_pars = c(ee,se),
+                                  prior_mu = plotDF$mu,
+                                  prior_sd = plotDF$sePrior)
+  
+  ## determine posterior probability and RoE
+  if(grepl(type, "threshold")){
+    
+    for(i in delta[order(delta)]){
+      plotDF$Prob <- apply(posteriorPars, 2, prob_grid, delta = i, larger = larger)
+      plotDF$RoE[plotDF$Prob <= alpha[1]] <- i
+    }
+    
+    plotDF$xFormat <- factor(x = plotDF$RoE,
+                             levels = delta[order(delta)],
+                             labels = paste0("Delta == ",
+                                             signif(delta[order(delta)], 3)))
+  }else if(grepl(type, "probability")){
+    
+    for(i in alpha[order(alpha, decreasing = TRUE)]){
+      plotDF$Prob <- apply(posteriorPars, 2, prob_grid, delta = delta[1], larger = larger)
+      plotDF$RoE[plotDF$Prob <= i] <- i
+    }
+    
+    plotDF$xFormat <- factor(x = plotDF$RoE,
+                             levels = alpha[order(alpha, decreasing = TRUE)],
+                             labels = paste0("alpha == ",
+                                             signif(alpha[order(alpha, decreasing = TRUE)], 3)))
+    
+  }else{
+    stop(paste("argument type =",type,"is unknown"))
+  }
+
+  
+  ## plot RoE
+  if (!larger) {
+    if(grepl(type, "threshold")){
+      legendString <- bquote({"Pr(effect size" < Delta * "| data, prior)"} >=
+                               .(signif(100*(1 - alpha[1]), 3)) * "%")
+    }else{
+      legendString <- bquote({"Pr(effect size" < .(signif(delta[1], 3)) * "| data, prior)"} >=
+                               1 - alpha * " ")
+    }
+  } else {
+    if(grepl(type, "threshold")){
+      legendString <- bquote({"Pr(effect size" > Delta * "| data, prior)"} >=
+                               .(signif(100*(1 - alpha[1]), 3)) * "%")
+    }else{
+      legendString <- bquote({"Pr(effect size" > .(signif(delta[1], 3)) * "| data, prior)"} >=
+                               1 - alpha * " ")
+    }
+  }
+  ROEplot <- ggplot2::ggplot(data = plotDF) +
+    ggplot2::geom_raster(ggplot2::aes_string(x = "sePrior",
+                                             y = "mu",
+                                             fill = "xFormat"),
+                         alpha = cols_alpha,
+                         na.rm = TRUE,
+                         interpolate = TRUE,
+                         show.legend = TRUE) + 
+    ggplot2::coord_cartesian(ylim = meanLim, xlim = sdLim) +
+    ggplot2::labs(fill = legendString) +
+    ggplot2::theme_bw() +
+    ggplot2::theme(legend.position = "top", panel.grid = ggplot2::element_blank(),
+                   legend.text.align = 0)
+  
+  if(is.null(cols)){
+    ROEplot <- ROEplot +
+      ggplot2::scale_fill_viridis_d(labels = scales::label_parse(), na.translate = F) +
+      ggplot2::scale_color_viridis_d(alpha = 1)
+  }else{
+    nregion <- length(levels(ROEplot$data$xFormat))
+    cols <- colorRampPalette(colors = cols, alpha = FALSE)(nregion)
+    names(cols) <- levels(ROEplot$data$xFormat)
+    ROEplot <- ROEplot +
+      ggplot2::scale_fill_manual(values = cols, labels = scales::label_parse(), na.translate = F) +
+      ggplot2::scale_color_manual(values = cols)
+  }
+  
+
+    ROEplot <- ROEplot +
+      ggplot2::scale_y_continuous(name = bquote("Prior mean"),
+                                  sec.axis = ggplot2::sec_axis(trans = ~ ./ee,
+                                                               name = bquote("Relative prior mean")),
+                                  expand = c(0, 0)) +
+      ggplot2::scale_x_continuous(name = bquote("Prior standard deviation"),
+                                  sec.axis = ggplot2::sec_axis(trans = ~ ./se,
+                                                               name = bquote("Relative prior standard deviation")),
+                                  expand = c(0, 0))
+  
+  out <- list(plot = ROEplot, data = plotDF, meanFun = NULL)
+  class(out) <- "bayesROE"
+  return(out)
+}

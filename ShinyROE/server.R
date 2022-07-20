@@ -86,7 +86,7 @@ function(input, output, session) {
     deltas <- delta()
     alphas <- alpha()
     if(length(alphas) >= 1 & length(deltas) >= 1){
-      ROE <- bayesROE(ee = input$ee, se = input$se, 
+      ROE <- ribbonROE(ee = input$ee, se = input$se, 
                       delta = deltas, alpha = alphas,
                       type = input$type, larger = TRUE,
                       meanLim = input$meanLim, sdLim = input$sdLim,
