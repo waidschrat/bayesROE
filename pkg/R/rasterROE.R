@@ -233,7 +233,7 @@ rasterROE <- function(ee, se, delta = 0, alpha = 0.025,
     }
   }
   
-  ## plot RoE
+  ## plot region(s) of evidence
   if(add){
     ROEplot <- ggplot2::geom_raster(ggplot2::aes_string(x = "sePrior",
                                                         y = "mu",

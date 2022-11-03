@@ -34,14 +34,14 @@ fluidPage(
                       column(
                         uiOutput("plot_limits"),
                         checkboxInput(inputId = "addRef", label = "Show Sceptical Prior", value = FALSE),
-                        checkboxInput(inputId = "flip", label = "Flip Axes", value = FALSE),
+                        checkboxInput(inputId = "addEst", label = "Show Effect Estimate", value = FALSE),
                         checkboxInput(inputId = "addConfl", label = "Conflict Regions", value = FALSE),
-                        
                         width = 6),
                       column(
                         sliderInput(inputId = "col_alpha", label = "Colour Opacity", min = 0, max = 1, value = 1, step = 0.1, ticks = FALSE),
                         colourInput(inputId = "col_lower", label = "Lower Colour Key", value = ref_cols$col_lower),
                         colourInput(inputId = "col_upper", label = "Upper Colour Key", value = ref_cols$col_upper),
+                        checkboxInput(inputId = "flip", label = "Flip Axes", value = FALSE),
                         width = 6)
                     ),
                   ), width = 6),

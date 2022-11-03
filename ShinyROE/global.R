@@ -7,7 +7,6 @@ ref_cols <- list(col_lower="#F5FF82", col_upper="#27CC1E", col_rope="#FF0000", c
 #ref_cols <- list(col_lower="#807096", col_upper="#3D3548", col_rope="#FF0000", col_conflict="#ABA545") #Alternative Color Palette
 
 
-
 #' Print method for bayesROE object
 #' @method print bayesROE
 #' @param x A bayesROE object
@@ -166,8 +165,9 @@ ribbonROE <- function(ee, se, delta = 0, alpha = 0.025,
                       type="threshold", larger = TRUE,
                       meanLim = c(pmin(2*ee, 0), pmax(0, 2*ee)),
                       sdLim = c(0, 3*se), nGrid = 500, relative = TRUE,
-                      cols = NULL, cols_alpha = 1, addRef = TRUE) {
-
+                      cols = NULL, cols_alpha = 1, 
+                      addRef = TRUE, addEst = FALSE) {
+  
   ## define relative variance parameter grid
   gSeq <- seq(sdLim[1]/se, sdLim[2]/se, length.out = nGrid)^2
   
@@ -221,7 +221,7 @@ ribbonROE <- function(ee, se, delta = 0, alpha = 0.025,
     stop(paste("argument type =",type,"is unknown"))
   }
   
-  ## plot RoE
+  ## plot region(s) of evidence
   if (!larger) {
     if(grepl(type, "threshold")){
       legendString <- bquote({"Pr(effect size" < Delta * "| data, prior)"} >=
@@ -259,7 +259,11 @@ ribbonROE <- function(ee, se, delta = 0, alpha = 0.025,
     ROEplot <- ROEplot + 
       ggplot2::geom_vline(xintercept = ref$y, lty = 2, lwd = 0.5) + 
       ggplot2::geom_hline(yintercept = ref$x, lty = 2, lwd = 0.5) +
-      ggplot2::annotate(geom = "text", x = ref$y, y = meanLim[1], label = paste(round(ref$y,2)), hjust = -0.5 )
+      ggplot2::annotate(geom = "text", x = ref$y, y = meanLim[1], label = paste(round(ref$y,2)), hjust = -0.5)
+  }
+  if(addEst){
+    ROEplot <- ROEplot +
+      ggplot2::annotate(geom = "point", x = ee, y = se, shape = 4)
   }
   
   if(is.null(cols)){

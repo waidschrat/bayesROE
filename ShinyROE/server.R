@@ -90,7 +90,8 @@ function(input, output, session) {
                       delta = deltas, alpha = alphas,
                       type = input$type, larger = TRUE,
                       meanLim = input$meanLim, sdLim = input$sdLim,
-                      nGrid = 500, relative = TRUE, addRef = input$addRef,
+                      nGrid = 500, relative = TRUE, 
+                      addRef = input$addRef, addEst = input$addEst,
                       cols = c(input$col_lower, input$col_upper), cols_alpha = input$col_alpha)
       
       if(!input$flip) ROE$plot <- suppressMessages(ROE$plot + coord_flip(ylim = input$meanLim, xlim = input$sdLim))

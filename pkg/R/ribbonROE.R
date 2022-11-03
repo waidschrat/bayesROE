@@ -34,10 +34,13 @@
 #'     automated color picking by calling ggplot2:scale_fill_viridis_d()
 #' @param cols_alpha Numeric value indicating the relative opacity of any
 #'     region of evidence (alpha channel). Defaults to 1 (no transparency).
-#' @param addRef Logical indicating if reference lines representing the minimum 
-#'     sceptical prior with expected value = 0 are to be added to the plot. If 
-#'     delta or alpha are vectors, only their first element(s) will be processed. 
+#' @param addRef Logical indicating if a reference cross representing the minimum 
+#'     sceptical prior is added to the plot. If delta or alpha are vectors, only 
+#'     their first element(s) will be processed. 
 #'     Defaults to TRUE.
+#' @param addEst Logical indicating if a point symbol representing the mean and 
+#'     standard error of the effect estimate (ee, se) is added to the plot.
+#'     Defaults to FALSE.
 #'
 #' @return A bayesROE object (a list containing the ggplot object, the data for
 #'     the plot, and the tipping point function)
@@ -69,7 +72,8 @@ ribbonROE <- function(ee, se, delta = 0, alpha = 0.025,
                       type="threshold", larger = TRUE,
                       meanLim = c(pmin(2*ee, 0), pmax(0, 2*ee)),
                       sdLim = c(0, 3*se), nGrid = 500, relative = TRUE,
-                      cols = NULL, cols_alpha = 1, addRef = TRUE) {
+                      cols = NULL, cols_alpha = 1, 
+                      addRef = TRUE, addEst = FALSE) {
   ## input checks
   stopifnot(
     length(ee) == 1,
@@ -128,7 +132,11 @@ ribbonROE <- function(ee, se, delta = 0, alpha = 0.025,
     
     length(addRef) == 1,
     is.logical(addRef),
-    !is.na(addRef)
+    !is.na(addRef),
+    
+    length(addEst) == 1,
+    is.logical(addEst),
+    !is.na(addEst)
   )
   
   
@@ -202,7 +210,7 @@ ribbonROE <- function(ee, se, delta = 0, alpha = 0.025,
     stop(paste("argument type =",type,"is unknown"))
   }
   
-  ## plot RoE
+  ## plot region(s) of evidence
   if (!larger) {
     if(grepl(type, "threshold")){
       legendString <- bquote({"Pr(effect size" < Delta * "| data, prior)"} >=
@@ -240,7 +248,11 @@ ribbonROE <- function(ee, se, delta = 0, alpha = 0.025,
     ROEplot <- ROEplot + 
       ggplot2::geom_vline(xintercept = ref$y, lty = 2, lwd = 0.5) + 
       ggplot2::geom_hline(yintercept = ref$x, lty = 2, lwd = 0.5) +
-      ggplot2::annotate(geom = "text", x = ref$y, y = meanLim[1], label = paste(round(ref$y,2)), hjust = -0.5 )
+      ggplot2::annotate(geom = "text", x = ref$y, y = meanLim[1], label = paste(round(ref$y,2)), hjust = -0.5)
+  }
+  if(addEst){
+    ROEplot <- ROEplot +
+      ggplot2::annotate(geom = "point", x = ee, y = se, shape = 4)
   }
   
   if(is.null(cols)){
