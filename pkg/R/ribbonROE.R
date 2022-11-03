@@ -13,8 +13,10 @@
 #' @param alpha Posterior probability that the effect size is less extreme than
 #'     delta. Defaults to 0.025. Can also be a vector of numerical values 
 #'     representing different regions.
-#' @param type Character indicating if regions of evidence should be constructed
-#'     from the arguments delta ("threshold") or alpha ("probability").
+#' @param type Character indicating if regions of evidence should be constructed 
+#'     for a non-inferiority claim using the first element of delta and all 
+#'     elements of alpha ("threshold") or for a non-inferiority claim using the 
+#'     all elements of delta and the first element of alpha ("probability").
 #'     Defaults to "threshold".
 #' @param larger Logical indicating if effect size should be larger (TRUE) or
 #'     smaller (FALSE) than delta. Defaults to TRUE.
