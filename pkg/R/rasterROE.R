@@ -13,11 +13,17 @@
 #' @param alpha Posterior probability that the effect size is less extreme than
 #'     delta. Defaults to 0.025. Can also be a vector of numerical values 
 #'     representing different regions.
-#' @param type Character indicating if regions of evidence should be constructed
-#'     from the arguments delta ("threshold") or alpha ("probability").
+#' @param type Character indicating if regions of evidence should be constructed 
+#'     for a non-inferiority claim using the first element of delta and all 
+#'     elements of alpha ("threshold"), for a non-inferiority claim using the 
+#'     all elements of delta and the first element of alpha ("probability"), 
+#'     for an equivalence claim using the first two elements of delta 
+#'     and all elements of alpha ("equivalence"), or for a prior-posterior 
+#'     conflict using the first elements of delta and alpha ("conflict").
 #'     Defaults to "threshold".
 #' @param larger Logical indicating if effect size should be larger (TRUE) or
-#'     smaller (FALSE) than delta. Defaults to TRUE.
+#'     smaller (FALSE) than delta. Ignored when type = "equivalence" or 
+#'     type = "conflict" Defaults to TRUE.
 #' @param meanLim Limits of prior mean axis. Defaults to interval between zero
 #'     and two times the effect estimate.
 #' @param sdLim Limits of prior standard deviation axis. Defaults to interval
@@ -28,6 +34,8 @@
 #'     automated color picking by calling ggplot2:scale_fill_viridis_d()
 #' @param cols_alpha Numeric value indicating the relative opacity of any
 #'     region of evidence (alpha channel). Defaults to 1 (no transparency).
+#' @param add Logical indicating if only geom_raster layer should be created.
+#'     Defaults to FALSE (complete regions of evidence plot).
 #'
 #' @return A bayesROE object (a list containing the ggplot object, the data for
 #'     the plot, and the empty tipping point function)
@@ -57,7 +65,7 @@ rasterROE <- function(ee, se, delta = 0, alpha = 0.025,
                      type="threshold", larger = TRUE,
                      meanLim = c(pmin(2*ee, 0), pmax(0, 2*ee)),
                      sdLim = c(0, 3*se), nGrid = 100,
-                     cols = NULL, cols_alpha = 1) {
+                     cols = NULL, cols_alpha = 1, add=FALSE) {
   ## input checks
   stopifnot(
     length(ee) == 1,
@@ -183,12 +191,30 @@ rasterROE <- function(ee, se, delta = 0, alpha = 0.025,
                              labels = paste0("alpha == ",
                                              signif(alpha[order(alpha, decreasing = TRUE)], 3)))
     
+  }else if(grepl(type, "equivalence")){
+    
+    if(length(delta) != 2 | delta[1] == delta[2]) stop("type = 'equivalence' requires delta to contain exactly 2 non-identical values: lower and upper margin of equivalence")
+    for(i in alpha[order(alpha, decreasing = TRUE)]){
+      plotDF$Prob1 <- apply(posteriorPars, 2, prob_grid, delta = min(delta), larger = TRUE)
+      plotDF$Prob2 <- apply(posteriorPars, 2, prob_grid, delta = max(delta), larger = FALSE)
+      plotDF$Prob <- 1 - (1-plotDF$Prob1)*(1-plotDF$Prob2)
+      plotDF$RoE[plotDF$Prob <= i] <- i
+    }
+    
+    plotDF$xFormat <- factor(x = plotDF$RoE,
+                             levels = alpha[order(alpha, decreasing = TRUE)],
+                             labels = paste0("alpha == ",
+                                             signif(alpha[order(alpha, decreasing = TRUE)], 3)))
+    
+  }else if(grepl(type, "conflict")){
+    
+    #plotDF$Prob1 <- with(grids, prob_grid(obs_pars[1], sqrt(obs_pars[2]^2+prior_sd^2), delta = prior_mu, side = "right"))
+    #plotDF$Prob2 <- with(grids, prob_grid(obs_pars[1], sqrt(obs_pars[2]^2+prior_sd^2), delta = prior_mu, side = "left"))
+    
   }else{
     stop(paste("argument type =",type,"is unknown"))
   }
 
-  
-  ## plot RoE
   if (!larger) {
     if(grepl(type, "threshold")){
       legendString <- bquote({"Pr(effect size" < Delta * "| data, prior)"} >=
@@ -206,34 +232,33 @@ rasterROE <- function(ee, se, delta = 0, alpha = 0.025,
                                1 - alpha * " ")
     }
   }
-  ROEplot <- ggplot2::ggplot(data = plotDF) +
-    ggplot2::geom_raster(ggplot2::aes_string(x = "sePrior",
-                                             y = "mu",
-                                             fill = "xFormat"),
-                         alpha = cols_alpha,
-                         na.rm = TRUE,
-                         interpolate = TRUE,
-                         show.legend = TRUE) + 
-    ggplot2::coord_cartesian(ylim = meanLim, xlim = sdLim) +
-    ggplot2::labs(fill = legendString) +
-    ggplot2::theme_bw() +
-    ggplot2::theme(legend.position = "top", panel.grid = ggplot2::element_blank(),
-                   legend.text.align = 0)
   
-  if(is.null(cols)){
-    ROEplot <- ROEplot +
-      ggplot2::scale_fill_viridis_d(labels = scales::label_parse(), na.translate = F) +
-      ggplot2::scale_color_viridis_d(alpha = 1)
+  ## plot RoE
+  if(add){
+    ROEplot <- ggplot2::geom_raster(ggplot2::aes_string(x = "sePrior",
+                                                        y = "mu",
+                                                        fill = "xFormat"),
+                                    data = plotDF,
+                                    alpha = cols_alpha,
+                                    na.rm = TRUE,
+                                    interpolate = TRUE,
+                                    show.legend = FALSE)
   }else{
-    nregion <- length(levels(ROEplot$data$xFormat))
-    cols <- colorRampPalette(colors = cols, alpha = FALSE)(nregion)
-    names(cols) <- levels(ROEplot$data$xFormat)
-    ROEplot <- ROEplot +
-      ggplot2::scale_fill_manual(values = cols, labels = scales::label_parse(), na.translate = F) +
-      ggplot2::scale_color_manual(values = cols)
-  }
-  
-
+    ROEplot <- ggplot2::ggplot(data = plotDF) +
+      ggplot2::geom_raster(ggplot2::aes_string(x = "sePrior",
+                                               y = "mu",
+                                               fill = "xFormat"),
+                           alpha = cols_alpha,
+                           na.rm = TRUE,
+                           interpolate = TRUE,
+                           show.legend = TRUE) + 
+      ggplot2::coord_cartesian(ylim = meanLim, xlim = sdLim) +
+      ggplot2::labs(fill = legendString) +
+      ggplot2::theme_bw() +
+      ggplot2::theme(legend.position = "top", panel.grid = ggplot2::element_blank(),
+                     legend.text.align = 0)
+    
+    
     ROEplot <- ROEplot +
       ggplot2::scale_y_continuous(name = bquote("Prior mean"),
                                   sec.axis = ggplot2::sec_axis(trans = ~ ./ee,
@@ -243,6 +268,21 @@ rasterROE <- function(ee, se, delta = 0, alpha = 0.025,
                                   sec.axis = ggplot2::sec_axis(trans = ~ ./se,
                                                                name = bquote("Relative prior standard deviation")),
                                   expand = c(0, 0))
+    
+    if(is.null(cols)){
+      ROEplot <- ROEplot +
+        ggplot2::scale_fill_viridis_d(labels = scales::label_parse(), na.translate = F) +
+        ggplot2::scale_color_viridis_d(alpha = 1)
+    }else{
+      nregion <- length(levels(ROEplot$data$xFormat))
+      cols <- colorRampPalette(colors = cols, alpha = FALSE)(nregion)
+      names(cols) <- levels(ROEplot$data$xFormat)
+      ROEplot <- ROEplot +
+        ggplot2::scale_fill_manual(values = cols, labels = scales::label_parse(), na.translate = F) +
+        ggplot2::scale_color_manual(values = cols)
+    }
+  }
+  
   
   out <- list(plot = ROEplot, data = plotDF, meanFun = NULL)
   class(out) <- "bayesROE"
