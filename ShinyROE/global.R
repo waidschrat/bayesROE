@@ -130,18 +130,18 @@ ribbonROE <- function(ee, se, delta = 0, alpha = 0.025,
   
   if(addRef) {
     ref <- with(plotDF[plotDF$alpha == alpha[1] & plotDF$delta == delta[1],], 
-                approx(x = sePrior, y = mu, n = nGrid))
+                approx(x = sePrior, y = mu, n = nGrid*10))
     ref <- list("x"=with(ref, x[y > 0][which.max(x[y > 0])]), "y"=0)
     
     ROEplot <- ROEplot + 
       ggplot2::geom_hline(yintercept = ref$y, lty = 2, lwd = 0.5)
     
-    if(length(ref$x) > 0 & ref$x < sdLim[2]){
-      ROEplot <- ROEplot + 
-        ggplot2::geom_vline(xintercept = ref$x, lty = 2, lwd = 0.5) +
-        ggplot2::annotate(geom = "text", x = ref$x, y = ref$y, 
-                          label = paste(round(ref$x,2)), 
-                          hjust = -0.1, vjust = -0.1)
+    if(length(ref$x) > 0){
+        ROEplot <- ROEplot + 
+          ggplot2::geom_vline(xintercept = ref$x, lty = 2, lwd = 0.5) +
+          ggplot2::annotate(geom = "text", x = ref$x, y = ref$y, 
+                            label = paste(round(ref$x,2)), 
+                            hjust = -0.1, vjust = -0.1)
     }
   }
   if(addEst){
