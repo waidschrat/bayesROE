@@ -94,7 +94,26 @@ function(input, output, session) {
                       addRef = input$addRef, addEst = input$addEst,
                       cols = c(input$col_lower, input$col_upper), cols_alpha = input$col_alpha)
       
+      if(input$addConfl){
+        ROE$plot <- ROE$plot + rasterROE(ee = input$ee, se = input$se,
+                                         delta = deltas, alpha = alphas,
+                                         type = "conflict",
+                                         meanLim = input$meanLim, sdLim = input$sdLim,
+                                         cols_alpha = 1,
+                                         nGrid = 100, add = TRUE)$plot
+        
+        #df <- data.frame(MASS::mvrnorm(1000, c(5,0), diag(2)))
+        #ROE$plot <- ROE$plot + geom_point(data = df, aes(x=X1,y=X2))
+        
+        #df <- expand.grid(X1=seq(0,10,length.out=50), X2=seq(0,5,length.out=50))
+        #df$dens <- mvtnorm::dmvnorm(df, mean = c(5,2.5), sigma = diag(2))
+        #ROE$plot <- ROE$plot + geom_contour(data = df, aes(x=X1,y=X2,z=dens))
+        #ROE$plot <- ROE$plot + geom_contour_filled(data = df, aes(x=X1,y=X2,z=dens), alpha=0.2)
+        
+      }
+      
       if(!input$flip) ROE$plot <- suppressMessages(ROE$plot + coord_flip(ylim = input$meanLim, xlim = input$sdLim))
+      
       return(ROE$plot)
     }else{
       return(NULL)

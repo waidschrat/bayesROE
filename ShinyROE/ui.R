@@ -35,7 +35,7 @@ fluidPage(
                         uiOutput("plot_limits"),
                         checkboxInput(inputId = "addRef", label = "Show Sceptical Prior", value = FALSE),
                         checkboxInput(inputId = "addEst", label = "Show Effect Estimate", value = FALSE),
-                        checkboxInput(inputId = "addConfl", label = "Conflict Regions", value = FALSE),
+                        checkboxInput(inputId = "addConfl", label = "Conflict Region", value = FALSE),
                         width = 6),
                       column(
                         sliderInput(inputId = "col_alpha", label = "Colour Opacity", min = 0, max = 1, value = 1, step = 0.1, ticks = FALSE),

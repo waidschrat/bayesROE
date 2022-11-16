@@ -18,24 +18,24 @@
 #'     elements of alpha ("threshold"), for a non-inferiority claim using the 
 #'     all elements of delta and the first element of alpha ("probability"), 
 #'     for an equivalence claim using the first two elements of delta 
-#'     and all elements of alpha ("equivalence"), or for a prior-posterior 
-#'     conflict using the first elements of delta and alpha ("conflict").
+#'     and all elements of alpha ("equivalence"), or for a prior-data 
+#'     conflict using only the first element of alpha ("conflict").
 #'     Defaults to "threshold".
 #' @param larger Logical indicating if effect size should be larger (TRUE) or
 #'     smaller (FALSE) than delta. Ignored when type = "equivalence" or 
-#'     type = "conflict" Defaults to TRUE.
-#' @param meanLim Limits of prior mean axis. Defaults to interval between zero
-#'     and two times the effect estimate.
-#' @param sdLim Limits of prior standard deviation axis. Defaults to interval
-#'     between zero and three times the standard error.
-#' @param nGrid Resolution of grid points (on both axes). Defaults to 100.
+#'     type = "conflict". Defaults to TRUE.
+#' @param meanLim Limits of prior mean axis.
+#' @param sdLim Limits of prior standard deviation axis.
+#' @param nGrid Resolution of grid points (on both axes). Defaults to 200.
 #' @param cols Character containing the HEX color code of the upper and lower
 #'     region of evidence, respectively. Defaults to NULL, which triggers
 #'     automated color picking by calling ggplot2:scale_fill_viridis_d()
 #' @param cols_alpha Numeric value indicating the relative opacity of any
 #'     region of evidence (alpha channel). Defaults to 1 (no transparency).
-#' @param add Logical indicating if only geom_raster layer should be created.
-#'     Defaults to FALSE (complete regions of evidence plot).
+#' @param add Logical indicating if a separate geom_raster layer should be 
+#'     created that can be added to an existing plot (TRUE), or if an entire 
+#'     regions of plot should be created (FALSE).
+#'     Defaults to FALSE.
 #'
 #' @return A bayesROE object (a list containing the ggplot object, the data for
 #'     the plot, and the empty tipping point function)
@@ -63,8 +63,8 @@
 #' @export
 rasterROE <- function(ee, se, delta = 0, alpha = 0.025,
                      type="threshold", larger = TRUE,
-                     meanLim = c(pmin(2*ee, 0), pmax(0, 2*ee)),
-                     sdLim = c(0, 3*se), nGrid = 100,
+                     meanLim = c(-3*abs(ee), 3*abs(ee)),
+                     sdLim = c(0, 5*se), nGrid = 200,
                      cols = NULL, cols_alpha = 1, add=FALSE) {
   ## input checks
   stopifnot(
@@ -163,15 +163,24 @@ rasterROE <- function(ee, se, delta = 0, alpha = 0.025,
   plotDF$sePrior = sqrt(plotDF$g)*se
   
   ## calculate posterior parameters
-  posteriorPars <- posterior_grid(obs_pars = c(ee,se),
-                                  prior_mu = plotDF$mu,
-                                  prior_sd = plotDF$sePrior)
+  plotDF <- data.frame(plotDF, 
+                       t(posterior_grid(obs_pars = c(ee, se), 
+                                        prior_mu = plotDF$mu, #prior_mu
+                                        prior_sd = plotDF$sePrior) #prior_sd
+                         )
+                       )
+  names(plotDF)[grep("X",names(plotDF))] <- c("posterior_mu","posterior_sd")
+  
   
   ## determine posterior probability and RoE
   if(grepl(type, "threshold")){
     
     for(i in delta[order(delta)]){
-      plotDF$Prob <- apply(posteriorPars, 2, prob_grid, delta = i, larger = larger)
+      plotDF$Prob <- apply(plotDF, 1, 
+                           function(x) prob_grid(x[c("posterior_mu","posterior_sd")],
+                                                 delta = i, larger = larger)
+                           )
+      #plotDF$Prob <- apply(posteriorPars, 2, prob_grid, delta = i, larger = larger)
       plotDF$RoE[plotDF$Prob <= alpha[1]] <- i
     }
     
@@ -182,7 +191,11 @@ rasterROE <- function(ee, se, delta = 0, alpha = 0.025,
   }else if(grepl(type, "probability")){
     
     for(i in alpha[order(alpha, decreasing = TRUE)]){
-      plotDF$Prob <- apply(posteriorPars, 2, prob_grid, delta = delta[1], larger = larger)
+      plotDF$Prob <- apply(plotDF, 1, 
+                           function(x) prob_grid(x[c("posterior_mu","posterior_sd")],
+                                                 delta = delta[1], larger = larger)
+      )
+      #plotDF$Prob <- apply(posteriorPars, 2, prob_grid, delta = delta[1], larger = larger)
       plotDF$RoE[plotDF$Prob <= i] <- i
     }
     
@@ -195,9 +208,16 @@ rasterROE <- function(ee, se, delta = 0, alpha = 0.025,
     
     if(length(delta) != 2 | delta[1] == delta[2]) stop("type = 'equivalence' requires delta to contain exactly 2 non-identical values: lower and upper margin of equivalence")
     for(i in alpha[order(alpha, decreasing = TRUE)]){
-      plotDF$Prob1 <- apply(posteriorPars, 2, prob_grid, delta = min(delta), larger = TRUE)
-      plotDF$Prob2 <- apply(posteriorPars, 2, prob_grid, delta = max(delta), larger = FALSE)
-      plotDF$Prob <- 1 - (1-plotDF$Prob1)*(1-plotDF$Prob2)
+      
+      plotDF$Prob1 <- apply(plotDF, 1, 
+                            function(x) prob_grid(x[c("posterior_mu","posterior_sd")],
+                                                  delta = min(delta), larger = TRUE)
+      )
+      plotDF$Prob2 <- apply(plotDF, 1, 
+                            function(x) prob_grid(x[c("posterior_mu","posterior_sd")],
+                                                  delta = max(delta), larger = FALSE)
+      )
+      plotDF$Prob <- with(plotDF, pmin(Prob1,Prob2))*2
       plotDF$RoE[plotDF$Prob <= i] <- i
     }
     
@@ -208,9 +228,21 @@ rasterROE <- function(ee, se, delta = 0, alpha = 0.025,
     
   }else if(grepl(type, "conflict")){
     
-    #plotDF$Prob1 <- with(grids, prob_grid(obs_pars[1], sqrt(obs_pars[2]^2+prior_sd^2), delta = prior_mu, side = "right"))
-    #plotDF$Prob2 <- with(grids, prob_grid(obs_pars[1], sqrt(obs_pars[2]^2+prior_sd^2), delta = prior_mu, side = "left"))
+    plotDF$Prob1 <- apply(plotDF, 1, 
+                          function(x) prob_grid(c(ee, sqrt(se^2+x["sePrior"]^2)),
+                                                delta = x["mu"], larger = TRUE)
+                         )
+    plotDF$Prob2 <- apply(plotDF, 1, 
+                          function(x) prob_grid(c(ee, sqrt(se^2+x["sePrior"]^2)),
+                                                delta = x["mu"], larger = FALSE)
+    )
+    plotDF$Prob <- with(plotDF, pmin(Prob1,Prob2))*2
     
+    plotDF$RoE[plotDF$Prob <= alpha[1]] <- alpha[1]*2
+    plotDF$xFormat <- factor(x = plotDF$RoE,
+                             levels = alpha[1],
+                             labels = paste0("conflict"))
+
   }else{
     stop(paste("argument type =",type,"is unknown"))
   }
@@ -235,14 +267,19 @@ rasterROE <- function(ee, se, delta = 0, alpha = 0.025,
   
   ## plot region(s) of evidence
   if(add){
-    ROEplot <- ggplot2::geom_raster(ggplot2::aes_string(x = "sePrior",
-                                                        y = "mu",
-                                                        fill = "xFormat"),
-                                    data = plotDF,
-                                    alpha = cols_alpha,
-                                    na.rm = TRUE,
-                                    interpolate = TRUE,
-                                    show.legend = FALSE)
+    ROEplot <- ggplot2::geom_contour(
+      mapping = ggplot2::aes_string(x = "sePrior", y = "mu", z = "Prob"),
+      data = plotDF,
+      show.legend = FALSE,
+      na.rm = TRUE,
+      col = "red", lty = 2,
+      breaks= alpha[1]*2)
+    
+    # ROEplot <- geom_contour_filled(
+    #   ggplot2::aes_string(x = "sePrior", y = "mu", z = "Prob", fill = "xFormat"),
+    #   data = plotDF, alpha = 0.5,
+    #   show.legend = FALSE)
+    
   }else{
     ROEplot <- ggplot2::ggplot(data = plotDF) +
       ggplot2::geom_raster(ggplot2::aes_string(x = "sePrior",
@@ -251,11 +288,12 @@ rasterROE <- function(ee, se, delta = 0, alpha = 0.025,
                            alpha = cols_alpha,
                            na.rm = TRUE,
                            interpolate = TRUE,
-                           show.legend = TRUE) + 
+                           show.legend = TRUE) +
       ggplot2::coord_cartesian(ylim = meanLim, xlim = sdLim) +
       ggplot2::labs(fill = legendString) +
       ggplot2::theme_bw() +
-      ggplot2::theme(legend.position = "top", panel.grid = ggplot2::element_blank(),
+      ggplot2::theme(legend.position = "top",
+                     panel.grid = ggplot2::element_blank(),
                      legend.text.align = 0)
     
     
@@ -271,18 +309,19 @@ rasterROE <- function(ee, se, delta = 0, alpha = 0.025,
     
     if(is.null(cols)){
       ROEplot <- ROEplot +
-        ggplot2::scale_fill_viridis_d(labels = scales::label_parse(), na.translate = F) +
+        ggplot2::scale_fill_viridis_d(labels = scales::label_parse(), 
+                                      na.translate = FALSE, na.value = NA) +
         ggplot2::scale_color_viridis_d(alpha = 1)
     }else{
       nregion <- length(levels(ROEplot$data$xFormat))
       cols <- colorRampPalette(colors = cols, alpha = FALSE)(nregion)
       names(cols) <- levels(ROEplot$data$xFormat)
       ROEplot <- ROEplot +
-        ggplot2::scale_fill_manual(values = cols, labels = scales::label_parse(), na.translate = F) +
+        ggplot2::scale_fill_manual(values = cols, labels = scales::label_parse(), 
+                                   na.translate = FALSE, na.value = NA) +
         ggplot2::scale_color_manual(values = cols)
     }
   }
-  
   
   out <- list(plot = ROEplot, data = plotDF, meanFun = NULL)
   class(out) <- "bayesROE"

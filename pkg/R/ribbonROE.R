@@ -244,11 +244,20 @@ ribbonROE <- function(ee, se, delta = 0, alpha = 0.025,
                    legend.text.align = 0)
   
   if(addRef) {
-    ref <- with(plotDF[plotDF$alpha == alpha[1] & plotDF$delta == delta[1],], approx(mu, sePrior, xout = 0))
+    ref <- with(plotDF[plotDF$alpha == alpha[1] & plotDF$delta == delta[1],], 
+                approx(x = sePrior, y = mu, n = nGrid))
+    ref <- list("x"=with(ref, x[y > 0][which.max(x[y > 0])]), "y"=0)
+    
     ROEplot <- ROEplot + 
-      ggplot2::geom_vline(xintercept = ref$y, lty = 2, lwd = 0.5) + 
-      ggplot2::geom_hline(yintercept = ref$x, lty = 2, lwd = 0.5) +
-      ggplot2::annotate(geom = "text", x = ref$y, y = meanLim[1], label = paste(round(ref$y,2)), hjust = -0.5)
+      ggplot2::geom_hline(yintercept = ref$y, lty = 2, lwd = 0.5)
+    
+    if(length(ref$x) > 0 & ref$x < sdLim[2]){
+      ROEplot <- ROEplot + 
+        ggplot2::geom_vline(xintercept = ref$x, lty = 2, lwd = 0.5) +
+        ggplot2::annotate(geom = "text", x = ref$x, y = ref$y, 
+                          label = paste(round(ref$x,2)), 
+                          hjust = -0.1, vjust = -0.1)
+    }
   }
   if(addEst){
     ROEplot <- ROEplot +
@@ -257,14 +266,16 @@ ribbonROE <- function(ee, se, delta = 0, alpha = 0.025,
   
   if(is.null(cols)){
     ROEplot <- ROEplot +
-      ggplot2::scale_fill_viridis_d(labels = scales::label_parse()) +
+      ggplot2::scale_fill_viridis_d(labels = scales::label_parse(),
+                                    na.translate = FALSE, na.value = NA) +
       ggplot2::scale_color_viridis_d(alpha = 1)
   }else{
     nregion <- length(levels(ROEplot$data$xFormat))
     cols <- colorRampPalette(colors = cols, alpha = FALSE)(nregion)
     names(cols) <- levels(ROEplot$data$xFormat)
     ROEplot <- ROEplot +
-      ggplot2::scale_fill_manual(values = cols, labels = scales::label_parse()) +
+      ggplot2::scale_fill_manual(values = cols, labels = scales::label_parse(),
+                                 na.translate = FALSE, na.value = NA) +
       ggplot2::scale_color_manual(values = cols)
   }
   
