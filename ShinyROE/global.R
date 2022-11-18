@@ -146,7 +146,7 @@ ribbonROE <- function(ee, se, delta = 0, alpha = 0.025,
   }
   if(addEst){
     ROEplot <- ROEplot +
-      ggplot2::annotate(geom = "point", x = ee, y = se, shape = 4)
+      ggplot2::annotate(geom = "point", y = ee, x = se, shape = 4)
   }
   
   if(is.null(cols)){
