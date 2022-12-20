@@ -60,12 +60,13 @@
 #' delta <- c(0, 0.3)
 #' ribbonROE(ee = d, se = d_se, delta = delta, meanLim = c(-1, 1))
 #'
-#' ## reproducing Figure 3 from Höfler (2021)
-#' ee <- 9
-#' se <- 3.9
-#' delta <- c(0, 3.75)
-#' ribbonROE(ee = ee, se = se, delta = delta, alpha = 0.05)$plot +
-#'   ggplot2::coord_flip(xlim = c(0, 12), ylim = c(-5, 10))
+#' ## reproducing Figure 1 from Höfler & Miller (2023)
+#' ee <- 3.07
+#' se <- 1.19
+#' ribbonROE(ee = ee, se = se, delta = c(0,3), alpha = 0.025, 
+#'   cols = c("#F5FF82", "#27CC1E"))$plot + 
+#'   ggplot2::annotate(geom = "point", y = ee, x = se, shape = 4) +
+#'   ggplot2::coord_flip(ylim = c(-5, 15))
 #'
 #' @export
 ribbonROE <- function(ee, se, delta = 0, alpha = 0.025,
@@ -186,7 +187,7 @@ ribbonROE <- function(ee, se, delta = 0, alpha = 0.025,
     plotDF$xFormat <- factor(x = plotDF$delta,
                              levels = delta[order(delta)],
                              labels = paste0("Delta == ",
-                                             signif(delta[order(delta)], 3)))
+                                             signif(delta[order(delta)], 3)," "))
   }else if(grepl(type, "probability")){
     plotDF <- do.call("rbind", lapply(X = alpha, FUN = function(x) {
       za <- stats::qnorm(p = 1 - x)
@@ -214,18 +215,18 @@ ribbonROE <- function(ee, se, delta = 0, alpha = 0.025,
   if (!larger) {
     if(grepl(type, "threshold")){
       legendString <- bquote({"Pr(effect size" < Delta * "| data, prior)"} >=
-                               .(signif(100*(1 - alpha[1]), 3)) * "%")
+                               .(signif(100*(1 - alpha[1]), 3)) * "%   ")
     }else{
       legendString <- bquote({"Pr(effect size" < .(signif(delta[1], 3)) * "| data, prior)"} >=
-                               1 - alpha * " ")
+                               1 - alpha * "   ")
     }
   } else {
     if(grepl(type, "threshold")){
       legendString <- bquote({"Pr(effect size" > Delta * "| data, prior)"} >=
-                               .(signif(100*(1 - alpha[1]), 3)) * "%")
+                               .(signif(100*(1 - alpha[1]), 3)) * "%   ")
     }else{
       legendString <- bquote({"Pr(effect size" > .(signif(delta[1], 3)) * "| data, prior)"} >=
-                               1 - alpha * " ")
+                               1 - alpha * "   ")
     }
   }
   ROEplot <- ggplot2::ggplot(data = plotDF) +

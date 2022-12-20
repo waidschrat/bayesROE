@@ -3,8 +3,8 @@ library(ggplot2)
 library(colourpicker)
 
 if(!exists("inits")) inits <- list(ee = 6, se = 3.9, delta = c(0,-1,1), alpha = c(0.025,0.05,0.01))
-ref_cols <- list(col_lower="#F5FF82", col_upper="#27CC1E", col_rope="#FF0000", col_conflict="#ABA545") #Default Color Palette
-#ref_cols <- list(col_lower="#807096", col_upper="#3D3548", col_rope="#FF0000", col_conflict="#ABA545") #Alternative Color Palette
+ref_cols <- list(col_lower="#F5FF82", col_upper="#27CC1E", col_rope="#FF0000", col_conflict="#ABA545") #Default Col Palette
+#ref_cols <- list(col_lower="#807096", col_upper="#3D3548", col_rope="#FF0000", col_conflict="#ABA545") #Alternative Col Palette
 
 
 #' Print method for bayesROE object

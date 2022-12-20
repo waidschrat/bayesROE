@@ -58,6 +58,7 @@
 #' se <- 3.9
 #' delta <- c(0, 3.75)
 #' rasterROE(ee = ee, se = se, delta = delta, alpha = 0.05)$plot +
+#'   ggplot2::annotate(geom = "point", y = ee, x = se, shape = 4)
 #'   ggplot2::coord_flip(xlim = c(0, 12), ylim = c(-5, 10))
 #'
 #' @export
@@ -187,7 +188,7 @@ rasterROE <- function(ee, se, delta = 0, alpha = 0.025,
     plotDF$xFormat <- factor(x = plotDF$RoE,
                              levels = delta[order(delta)],
                              labels = paste0("Delta == ",
-                                             signif(delta[order(delta)], 3)))
+                                             signif(delta[order(delta)], 3), " "))
   }else if(grepl(type, "probability")){
     
     for(i in alpha[order(alpha, decreasing = TRUE)]){
@@ -250,18 +251,18 @@ rasterROE <- function(ee, se, delta = 0, alpha = 0.025,
   if (!larger) {
     if(grepl(type, "threshold")){
       legendString <- bquote({"Pr(effect size" < Delta * "| data, prior)"} >=
-                               .(signif(100*(1 - alpha[1]), 3)) * "%")
+                               .(signif(100*(1 - alpha[1]), 3)) * "%   ")
     }else{
       legendString <- bquote({"Pr(effect size" < .(signif(delta[1], 3)) * "| data, prior)"} >=
-                               1 - alpha * " ")
+                               1 - alpha * "   ")
     }
   } else {
     if(grepl(type, "threshold")){
       legendString <- bquote({"Pr(effect size" > Delta * "| data, prior)"} >=
-                               .(signif(100*(1 - alpha[1]), 3)) * "%")
+                               .(signif(100*(1 - alpha[1]), 3)) * "%   ")
     }else{
       legendString <- bquote({"Pr(effect size" > .(signif(delta[1], 3)) * "| data, prior)"} >=
-                               1 - alpha * " ")
+                               1 - alpha * "   ")
     }
   }
   

@@ -20,7 +20,6 @@ function(input, output, session) {
     }
     if(input$type == "prob"){
       sidebar_args <- tagList(
-        #helpText("WARNING: Plot Type 'Probability' is currently not functional."),
         numericInput(inputId = "delta",
                      label = "Delta",
                      value = inits$delta[1],
@@ -101,15 +100,6 @@ function(input, output, session) {
                                          meanLim = input$meanLim, sdLim = input$sdLim,
                                          cols_alpha = 1,
                                          nGrid = 100, add = TRUE)$plot
-        
-        #df <- data.frame(MASS::mvrnorm(1000, c(5,0), diag(2)))
-        #ROE$plot <- ROE$plot + geom_point(data = df, aes(x=X1,y=X2))
-        
-        #df <- expand.grid(X1=seq(0,10,length.out=50), X2=seq(0,5,length.out=50))
-        #df$dens <- mvtnorm::dmvnorm(df, mean = c(5,2.5), sigma = diag(2))
-        #ROE$plot <- ROE$plot + geom_contour(data = df, aes(x=X1,y=X2,z=dens))
-        #ROE$plot <- ROE$plot + geom_contour_filled(data = df, aes(x=X1,y=X2,z=dens), alpha=0.2)
-        
       }
       
       if(!input$flip) ROE$plot <- suppressMessages(ROE$plot + coord_flip(ylim = input$meanLim, xlim = input$sdLim))
