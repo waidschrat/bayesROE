@@ -1,0 +1,8 @@
+default:
+  golem_name: bayesROE
+  golem_version: 0.0.0.9000
+  app_prod: no
+production:
+  app_prod: yes
+dev:
+  golem_wd: C:/Users/Miller63/Pfizer/Outcomes Reseach Germany - Team only - RM/Projekte/Portfolio/InvBayes/bayesROE
