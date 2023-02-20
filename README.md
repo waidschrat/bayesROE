@@ -10,6 +10,8 @@ stable](https://img.shields.io/badge/lifecycle-stable-brightgreen.svg)](https://
 
 [![CRAN
 status](https://www.r-pkg.org/badges/version/bayesROE)](https://CRAN.R-project.org/package=bayesROE)
+[![Codecov test
+coverage](https://codecov.io/gh/waidschrat/bayesROE/branch/main/graph/badge.svg)](https://app.codecov.io/gh/waidschrat/bayesROE?branch=main)
 <!-- badges: end -->
 
 The goal of bayesROE is to provide an R package and Shiny application

@@ -50,7 +50,7 @@ devtools::build_readme()
 
 usethis::use_cran_badge()
 usethis::use_lifecycle_badge("Stable")
-# usethis::use_coverage()
+usethis::use_coverage(type = "codecov", repo_spec = "waidschrat/bayesROE")
 # usethis::use_news_md(open = FALSE)
 
 
