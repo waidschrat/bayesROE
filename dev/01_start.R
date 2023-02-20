@@ -48,8 +48,9 @@ devtools::build_readme()
 # If your {usethis} version is older, you can remove that param
 # usethis::use_code_of_conduct(contact = "Golem User")
 
-# usethis::use_cran_badge()
+usethis::use_cran_badge()
 usethis::use_lifecycle_badge("Stable")
+# usethis::use_coverage()
 # usethis::use_news_md(open = FALSE)
 
 
