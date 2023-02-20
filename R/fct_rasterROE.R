@@ -55,7 +55,7 @@
 #' ee <- 9
 #' se <- 3.9
 #' delta <- c(0, 3.75)
-#' rasterROE(ee = ee, se = se, delta = delta, alpha = 0.05)$plot +
+#' rasterROE(ee = ee, se = se, delta = delta, alpha = 0.05, nGrid = 25)$plot +
 #'   ggplot2::annotate(geom = "point", y = ee, x = se, shape = 4)
 #'   ggplot2::coord_flip(xlim = c(0, 12), ylim = c(-5, 10))
 #'
