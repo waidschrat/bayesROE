@@ -17,7 +17,7 @@ print.bayesROE <- function(x, ...) {
 #'     interactively visualize and explore the Bayesian Regions of Evidence.
 #'     Parameters entries from the sidebar are passed to the bayesROE function.
 #'     The function has been deprecated in favor of bayesROE::run_app() and is
-#'     only retained for downward compability.
+#'     only retained for downward compatibility.
 #'     
 #' @param ... arguments to pass to golem_opts.
 #' See `?golem::get_golem_options` for more details.
@@ -28,7 +28,7 @@ print.bayesROE <- function(x, ...) {
 #' # reproducing Figure 3 from Hoefler and Miller (2023)
 #' init <- list(ee = 9, se = 3.9, delta = c(0, 3.75), alpha = 0.025)
 #' if(interactive()){
-#' shinyROE(init = init)
+#'    shinyROE(init = init)
 #' }
 #' 
 #' @export

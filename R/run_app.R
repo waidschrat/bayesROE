@@ -16,7 +16,7 @@
 #' init <- list(ee = 9, se = 3.9, delta = c(0, 3.75), alpha = 0.025)
 #' cols <- list(col_lower = "#F5FF82", col_upper = "#27CC1E")
 #' if(interactive()){
-#' run_app(init = init, cols = cols)
+#'    run_app(init = init, cols = cols)
 #' }
 #'
 #' @export
