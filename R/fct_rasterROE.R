@@ -49,15 +49,19 @@
 #' d <- 0.4
 #' d_se <- 0.1
 #' delta <- c(0, 0.3)
+#' \dontrun{
 #' rasterROE(ee = d, se = d_se, delta = delta, meanLim = c(-1, 1))
+#' }
 #'
 #' ## reproducing Figure 3 from Hoefler & Miller (2023)
 #' ee <- 9
 #' se <- 3.9
 #' delta <- c(0, 3.75)
-#' rasterROE(ee = ee, se = se, delta = delta, alpha = 0.05, nGrid = 10)$plot +
+#' \dontrun{
+#' rasterROE(ee = ee, se = se, delta = delta, alpha = 0.05)$plot +
 #'   ggplot2::annotate(geom = "point", y = ee, x = se, shape = 4)
 #'   ggplot2::coord_flip(xlim = c(0, 12), ylim = c(-5, 10))
+#' }
 #'
 #' @export
 #' @importFrom grDevices colorRampPalette

@@ -14,23 +14,23 @@ status](https://www.r-pkg.org/badges/version/bayesROE)](https://CRAN.R-project.o
 coverage](https://codecov.io/gh/waidschrat/bayesROE/branch/main/graph/badge.svg)](https://app.codecov.io/gh/waidschrat/bayesROE?branch=main)
 <!-- badges: end -->
 
-The goal of bayesROE is to provide an R package and Shiny application
-for easy computation and visualization of Bayesian Regions of Evidence
-as described by Hoefler and Miller (2023). [Project History on Open
-Science Framework](https://osf.io/jxnsv/). Such regions serve to
-systematically probe the sensitivity of a superiority or non-inferiority
-claim a gainst any prior assumption of its assessors. Thus, their
-presentation aids research transparency and scientific evaluation of
-study findings. Besides generic functions, the package also provides an
-intuitive user interface for a Shiny application, that can be run in a
-local R environment.
+The goal of bayesROE is to provide an R package and a Shiny User
+Interface for easy computation and visualization of Bayesian regions of
+evidence as described by Hoefler and Miller (2023): [Project History on
+Open Science Framework](https://osf.io/jxnsv/). Such regions of evidence
+serve to systematically probe the sensitivity of a superiority or
+non-inferiority claim against any prior assumption of its assessors.
+Thus, their presentation aids research transparency and scientific
+evaluation of study findings. Besides generic functions, the package
+also provides an intuitive user interface for a Shiny application, that
+can be run in a local R environment.
 
 ## Installation
 
 You can install the development version of bayesROE like so:
 
 ``` r
-remotes::install_github(repo = "waidschrat/bayesROE", subdir = "pkg")
+remotes::install_github(repo = "waidschrat/bayesROE")
 ```
 
 ## Example
