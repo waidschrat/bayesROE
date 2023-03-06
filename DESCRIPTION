@@ -3,13 +3,12 @@ Title: Bayesian Regions of Evidence
 Version: 0.1
 Authors@R: 
     person("Robert", "Miller", , "robert.miller@tu-dresden.de", role = c("cre", "aut"))
-Description: The bayesROE package enables computation and visualization of
-    Bayesian Regions of Evidence to systematically probe the sensitivity
-    of a superiority or non-inferiority claim against any prior assumption
-    of its assessors. Methodological details are elaborated by Hoefler and
-    Miller (2023).  Besides generic functions, the package also provides
-    an intuitive user interface for a Shiny application, that can be run
-    in a local R environment.
+Description: Computation and visualization of Bayesian Regions of Evidence to 
+    systematically evaluate the sensitivity of a superiority or non-inferiority 
+    claim against any prior assumption of its assessors. Methodological details 
+    are elaborated by Hoefler and Miller (<[https://osf.io/jxnsv]https://osf.io/jxnsv>). 
+    Besides generic functions, the package also provides an intuitive 'Shiny' 
+    application, that can be run in local R environments.
 License: GPL (>= 3)
 URL: https://github.com/waidschrat/bayesROE
 BugReports: https://github.com/waidschrat/bayesROE/issues
