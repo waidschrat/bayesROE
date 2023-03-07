@@ -6,7 +6,7 @@ Authors@R:
 Description: Computation and visualization of Bayesian Regions of Evidence to 
     systematically evaluate the sensitivity of a superiority or non-inferiority 
     claim against any prior assumption of its assessors. Methodological details 
-    are elaborated by Hoefler and Miller (<[https://osf.io/jxnsv]https://osf.io/jxnsv>). 
+    are elaborated by Hoefler and Miller (<https://osf.io/jxnsv>). 
     Besides generic functions, the package also provides an intuitive 'Shiny' 
     application, that can be run in local R environments.
 License: GPL (>= 3)
