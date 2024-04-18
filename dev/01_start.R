@@ -33,11 +33,11 @@ golem::fill_desc(
 ?golem::set_golem_options()
 
 golem::set_golem_version(
-  version = "0.1",
-  path = pkgload::pkg_path(),
+  version = "0.2",
+  #path = pkgload::pkg_path(),
   talkative = TRUE
 )
-#desc::desc_set_version("0.1", file = ".", normalize = FALSE)
+desc::desc_set_version("0.2", file = ".", normalize = FALSE)
 
 ## Create Common Files ----
 ## See ?usethis for more information

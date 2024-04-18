@@ -50,6 +50,7 @@ app_ui <- function(request) {
                           column(
                             uiOutput("plot_limits"),
                             checkboxInput(inputId = "addRef", label = "Show Sceptical Prior", value = FALSE),
+                            
                             checkboxInput(inputId = "addEst", label = "Show Effect Estimate", value = FALSE),
                             checkboxInput(inputId = "addConfl", label = "Conflict Region", value = FALSE),
                             width = 6),

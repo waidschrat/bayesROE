@@ -50,6 +50,13 @@ app_server <- function(input, output, session) {
                                                                min = 0.1, max = 99.9, step = 0.1)
       }
     }
+    if(input$addRef){
+      sidebar_args[[length(sidebar_args)+1]] <- numericInput(inputId = "sceptPrior",
+                                                             label = "Minimum Sceptical Prior",
+                                                             value = 0,
+                                                             min = -100, max = 100,
+                                                             step = 0.01)
+    }
     
     sidebar_args
   })
@@ -102,7 +109,8 @@ app_server <- function(input, output, session) {
                        type = input$type, larger = TRUE,
                        meanLim = input$meanLim, sdLim = input$sdLim,
                        nGrid = 500, relative = TRUE, 
-                       addRef = input$addRef, addEst = input$addEst,
+                       addRef = input$addRef, sceptPrior = input$sceptPrior,
+                       addEst = input$addEst,
                        cols = c(input$col_lower, input$col_upper), cols_alpha = input$col_alpha)
       
       if(input$addConfl){

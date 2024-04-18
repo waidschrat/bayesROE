@@ -35,9 +35,9 @@
 #' @param cols_alpha Numeric value indicating the relative opacity of any
 #'     region of evidence (alpha channel). Defaults to 1 (no transparency).
 #' @param addRef Logical indicating if a reference cross representing the minimum 
-#'     sceptical prior is added to the plot. If delta or alpha are vectors, only 
-#'     their first element(s) will be processed. 
-#'     Defaults to TRUE.
+#'     sceptical prior is added to the plot. Defaults to TRUE.
+#' @param sceptPrior Numeric value indicating the effect location of the minimum 
+#'    sceptical prior. Defaults to 0.
 #' @param addEst Logical indicating if a point symbol representing the mean and 
 #'     standard error of the effect estimate (ee, se) is added to the plot.
 #'     Defaults to FALSE.
@@ -74,7 +74,8 @@ ribbonROE <- function(ee, se, delta = 0, alpha = 0.025,
                       meanLim = c(pmin(2*ee, 0), pmax(0, 2*ee)),
                       sdLim = c(0, 3*se), nGrid = 500, relative = TRUE,
                       cols = NULL, cols_alpha = 1, 
-                      addRef = TRUE, addEst = FALSE) {
+                      addRef = TRUE, sceptPrior = 0, 
+                      addEst = FALSE) {
   ## input checks
   stopifnot(
     length(ee) == 1,
@@ -134,6 +135,10 @@ ribbonROE <- function(ee, se, delta = 0, alpha = 0.025,
     length(addRef) == 1,
     is.logical(addRef),
     !is.na(addRef),
+    
+    length(sceptPrior) == 1,
+    is.numeric(sceptPrior),
+    is.finite(sceptPrior),
     
     length(addEst) == 1,
     is.logical(addEst),
@@ -245,21 +250,41 @@ ribbonROE <- function(ee, se, delta = 0, alpha = 0.025,
                    legend.text.align = 0)
   
   if(addRef) {
+    ROEplot <- ROEplot + 
+      ggplot2::geom_hline(yintercept = sceptPrior, lty = 2, lwd = 0.5)
+    
     ref <- with(plotDF[plotDF$alpha == alpha[1] & plotDF$delta == delta[1],], 
                 approx(x = sePrior, y = mu, n = nGrid*10))
-    ref <- list("x"=with(ref, x[y > 0][which.max(x[y > 0])]), "y"=0)
     
-    ROEplot <- ROEplot + 
-      ggplot2::geom_hline(yintercept = ref$y, lty = 2, lwd = 0.5)
+    thresholds <- c(diff(range(ref$x))/nGrid, sdLim[2]/nGrid)
+    ref$dy <- abs(ref$y - sceptPrior)
+    refmin_ids <- which(ref$dy < thresholds[1]) #mu sufficiently close to location of sceptical prior
     
-    if(length(ref$x) > 0){
+    if(length(refmin_ids) > 0){
+      if(diff(range(ref$x[refmin_ids])) > thresholds[2]){ 
+        #there are two distinct close mu within plotted parameter space
+        refmin_loc <- min(ref$x[refmin_ids]) + diff(range(ref$x[refmin_ids]))/2
+        refmin_ids <- which(ref$dy < thresholds[1] & ref$x > refmin_loc)
+        refmin_loc <- ref$x[refmin_ids][which.min(ref$dy[refmin_ids])]
+        refmin_ids <- which(ref$x == refmin_loc)
+      }else{ 
+        #there is only one close mu within plotted parameter space 
+        refmin_ids <- which.min(ref$dy)
+      }
+      
       ROEplot <- ROEplot + 
-        ggplot2::geom_vline(xintercept = ref$x, lty = 2, lwd = 0.5) +
-        ggplot2::annotate(geom = "text", x = ref$x, y = ref$y, 
-                          label = paste(round(ref$x,2)), 
+        ggplot2::geom_vline(xintercept = ref$x[refmin_ids], lty = 2, lwd = 0.5) +
+        ggplot2::annotate(geom = "text", x = ref$x[refmin_ids], y = sceptPrior,
+                          label = paste(round(ref$x[refmin_ids],2)),
                           hjust = -0.1, vjust = -0.1)
+    }else{
+      #there is no close mu within plotted parameter space 
+      ROEplot <- ROEplot + 
+        ggplot2::annotate(geom = "text", x = diff(sdLim)/2, y = sceptPrior,
+                          label = paste("no smallest sceptical prior\nwithin plotted parameter space"))
     }
   }
+  
   if(addEst){
     ROEplot <- ROEplot +
       ggplot2::annotate(geom = "point", y = ee, x = se, shape = 4)
