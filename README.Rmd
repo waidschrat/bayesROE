@@ -49,21 +49,18 @@ The following code extends the example from Hoefler and Miller (2023) by visuali
 library(bayesROE)
 
 # Arguments to reproduce Figure from Hoefler and Miller (2023)
-init <- list(ee = 3.07, se = 1.19, delta = c(-3, 0, 3), alpha = 0.025, sceptPrior = 0)
+init <- list(ee = 3.07, se = 1.19, delta = c(-3, 0, 3), alpha = 0.025)
 cols <- list(col_lower = "#F5FF82", col_upper = "#27CC1E")
 
 # Pass Arguments to Locally Run Shiny Application using run_app()
-if(interactive()){
-  run_app(init = init, cols = cols)
-}
+#if(interactive()){
+#  run_app(init = init, cols = cols)
+#}
 
 # Alternatively Generate and Customize Regions of Evidence Plot using ribbonROE()
-HM23.3 <- ribbonROE(ee = init$ee, se = init$se, delta = init$delta, alpha = init$alpha,
-                    sceptPrior = init$sceptPrior,
-                    cols = c(cols$col_lower, cols$col_upper))$plot + 
+HM23.3 <- ribbonROE(ee = init$ee, se = init$se, delta = init$delta, alpha = init$alpha, cols = c(cols$col_lower, cols$col_upper))$plot + 
   ggplot2::annotate(geom = "point", y = init$ee, x = init$se, shape = 4) +
   ggplot2::coord_flip(ylim = c(-5, 15))
-
 
 ```
 
