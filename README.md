@@ -40,8 +40,8 @@ remotes::install_github(repo = "waidschrat/bayesROE")
 ## Example
 
 The following code extends the example from Hoefler and Miller (2023) by
-visualizing the RoE for one non-inferiority claim (delta = -3 pts) and
-the ROEs for two superiority claims (delta = 0 points and delta = 3
+visualizing the RoE for one non-inferiority claim (delta = -3 points)
+and the ROEs for two superiority claims (delta = 0 points and delta = 3
 points) for an additional reduction of MADRS scores due to adjunct
 Esketamine treatment of patients suffering from moderate to severe major
 depression:
@@ -50,18 +50,16 @@ depression:
 library(bayesROE)
 
 # Arguments to reproduce Figure from Hoefler and Miller (2023)
-init <- list(ee = 3.07, se = 1.19, delta = c(-3, 0, 3), alpha = 0.025, sceptPrior = 0)
+init <- list(ee = 3.07, se = 1.19, delta = c(-3, 0, 3), alpha = 0.025)
 cols <- list(col_lower = "#F5FF82", col_upper = "#27CC1E")
 
 # Pass Arguments to Locally Run Shiny Application using run_app()
-if(interactive()){
-  run_app(init = init, cols = cols)
-}
+#if(interactive()){
+#  run_app(init = init, cols = cols)
+#}
 
 # Alternatively Generate and Customize Regions of Evidence Plot using ribbonROE()
-HM23.3 <- ribbonROE(ee = init$ee, se = init$se, delta = init$delta, alpha = init$alpha,
-                    sceptPrior = init$sceptPrior,
-                    cols = c(cols$col_lower, cols$col_upper))$plot + 
+HM23.3 <- ribbonROE(ee = init$ee, se = init$se, delta = init$delta, alpha = init$alpha, cols = c(cols$col_lower, cols$col_upper))$plot + 
   ggplot2::annotate(geom = "point", y = init$ee, x = init$se, shape = 4) +
   ggplot2::coord_flip(ylim = c(-5, 15))
 #> Coordinate system already present. Adding new coordinate system, which will

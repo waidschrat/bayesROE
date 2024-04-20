@@ -1,6 +1,6 @@
 Package: bayesROE
 Title: Bayesian Regions of Evidence
-Version: 0.2
+Version: 0.2-1
 Authors@R: 
     person("Robert", "Miller", , "robert.miller@tu-dresden.de", role = c("cre", "aut"))
 Description: Computation and visualization of Bayesian Regions of Evidence
@@ -30,4 +30,4 @@ Config/testthat/edition: 3
 Encoding: UTF-8
 Language: en-US
 LazyData: true
-RoxygenNote: 7.2.3
+RoxygenNote: 7.3.1

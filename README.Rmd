@@ -43,7 +43,7 @@ remotes::install_github(repo = "waidschrat/bayesROE")
 
 ## Example
 
-The following code extends the example from Hoefler and Miller (2023) by visualizing the RoE for one non-inferiority claim (delta = -3 pts) and the ROEs for two superiority claims (delta = 0 points and delta = 3 points) for an additional reduction of MADRS scores due to adjunct Esketamine treatment of patients suffering from moderate to severe major depression:
+The following code extends the example from Hoefler and Miller (2023) by visualizing the RoE for one non-inferiority claim (delta = -3 points) and the ROEs for two superiority claims (delta = 0 points and delta = 3 points) for an additional reduction of MADRS scores due to adjunct Esketamine treatment of patients suffering from moderate to severe major depression:
 
 ```{r example}
 library(bayesROE)

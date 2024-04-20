@@ -24,7 +24,7 @@ golem::fill_desc(
   pkg_description = "The bayesROE package enables computation and visualization of the Bayesian Regions of Evidence.", # The Description of the package containing the App
   author_first_name = "Robert", # Your First Name
   author_last_name = "Miller", # Your Last Name
-  author_email = "robert.miller@tu-dresden.de", # Your Email
+  author_email = "r.miller@phb.de", # Your Email
   repo_url = "https://github.com/waidschrat/bayesROE" # The URL of the GitHub Repo (optional)
 )
 
@@ -33,11 +33,11 @@ golem::fill_desc(
 ?golem::set_golem_options()
 
 golem::set_golem_version(
-  version = "0.2",
+  version = "0.2-1",
   #path = pkgload::pkg_path(),
   talkative = TRUE
 )
-desc::desc_set_version("0.2", file = ".", normalize = FALSE)
+desc::desc_set_version("0.2-1", file = ".", normalize = FALSE)
 
 ## Create Common Files ----
 ## See ?usethis for more information

@@ -34,7 +34,7 @@ run_app <- function(
   ...) {
   
   #set default golem_opts and update based on user input
-  inits <- list(ee = 6, se = 3.9, delta = c(0,-1,1), alpha = c(0.025,0.05,0.01)) #Default Parameter Set
+  inits <- list(ee = 6, se = 3.9, delta = c(0,-1,1), alpha = c(0.025,0.05,0.01), sceptPrior = 0) #Default Parameter Set
   if(!is.null(init)) inits[match.arg(names(init),names(inits), several.ok = TRUE)] <- init
   ref_cols <- list(col_lower = "#F5FF82", col_upper = "#27CC1E", col_rope = "#FF0000", col_conflict = "#ABA545") #Default Col Palette
   if(!is.null(cols)) ref_cols[match.arg(names(cols),names(ref_cols), several.ok = TRUE)] <- cols

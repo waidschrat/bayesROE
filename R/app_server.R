@@ -53,7 +53,7 @@ app_server <- function(input, output, session) {
     if(input$addRef){
       sidebar_args[[length(sidebar_args)+1]] <- numericInput(inputId = "sceptPrior",
                                                              label = "Minimum Sceptical Prior",
-                                                             value = 0,
+                                                             value = inits$sceptPrior,
                                                              min = -100, max = 100,
                                                              step = 0.01)
     }

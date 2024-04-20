@@ -35,7 +35,7 @@
 #' @param cols_alpha Numeric value indicating the relative opacity of any
 #'     region of evidence (alpha channel). Defaults to 1 (no transparency).
 #' @param addRef Logical indicating if a reference cross representing the minimum 
-#'     sceptical prior is added to the plot. Defaults to TRUE.
+#'     sceptical prior is added to the plot. Defaults to FALSE.
 #' @param sceptPrior Numeric value indicating the effect location of the minimum 
 #'    sceptical prior. Defaults to 0.
 #' @param addEst Logical indicating if a point symbol representing the mean and 
@@ -74,7 +74,7 @@ ribbonROE <- function(ee, se, delta = 0, alpha = 0.025,
                       meanLim = c(pmin(2*ee, 0), pmax(0, 2*ee)),
                       sdLim = c(0, 3*se), nGrid = 500, relative = TRUE,
                       cols = NULL, cols_alpha = 1, 
-                      addRef = TRUE, sceptPrior = 0, 
+                      addRef = FALSE, sceptPrior = 0, 
                       addEst = FALSE) {
   ## input checks
   stopifnot(

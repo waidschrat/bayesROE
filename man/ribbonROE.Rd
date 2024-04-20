@@ -17,7 +17,7 @@ ribbonROE(
   relative = TRUE,
   cols = NULL,
   cols_alpha = 1,
-  addRef = TRUE,
+  addRef = FALSE,
   sceptPrior = 0,
   addEst = FALSE
 )
@@ -64,7 +64,7 @@ automated color picking by calling ggplot2:scale_fill_viridis_d()}
 region of evidence (alpha channel). Defaults to 1 (no transparency).}
 
 \item{addRef}{Logical indicating if a reference cross representing the minimum 
-sceptical prior is added to the plot. Defaults to TRUE.}
+sceptical prior is added to the plot. Defaults to FALSE.}
 
 \item{sceptPrior}{Numeric value indicating the effect location of the minimum 
 sceptical prior. Defaults to 0.}
